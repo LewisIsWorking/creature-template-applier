@@ -9,6 +9,7 @@ const facts = (over: Partial<CreatureFacts> = {}): CreatureFacts => ({
   canFly: false,
   highestSkill: 12,
   slowedUuid: 'Compendium.pf2e.conditionitems.Item.slowed',
+  hasLanguages: true,
   ...over,
 });
 
@@ -29,7 +30,10 @@ function resolve(value: unknown, level: number): number {
 
 describe('templates', () => {
   it('has the nine Book of the Dead undead adjustments, with unique ids', () => {
-    expect(TEMPLATES.map((t) => t.id)).toEqual(['undead', 'ghost', 'ghoul', 'mummy', 'shadow', 'skeleton', 'vampire', 'wight', 'zombie']);
+    expect(TEMPLATES.map((t) => t.id)).toEqual([
+      'undead', 'ghost', 'ghoul', 'mummy', 'shadow', 'skeleton', 'vampire', 'wight', 'zombie',
+      'air', 'earth', 'fire', 'metal', 'water', 'wood',
+    ]);
     expect(findTemplate('nope')).toBeUndefined();
   });
 
@@ -46,8 +50,8 @@ describe('templates', () => {
     }
   });
 
-  it('every template adds the undead trait, void healing and the undead immunities', () => {
-    for (const t of TEMPLATES) {
+  it('every undead template adds the undead trait, void healing and the undead immunities', () => {
+    for (const t of TEMPLATES.filter((x) => x.group === 'Undead')) {
       const rules = t.build(facts(), {}).rules;
       expect(addedTraits(rules), t.id).toContain('undead');
       expect(rules.some((r) => r['path'] === 'system.attributes.hp.negativeHealing' && r['value'] === true), t.id).toBe(true);
@@ -148,6 +152,76 @@ describe('templates', () => {
   });
 });
 
+describe('elemental templates', () => {
+  const langs = (rules: readonly Rule[]) => rules.filter((r) => r['path'] === 'system.details.languages.value').map((r) => r['value']);
+  const speeds = (rules: readonly Rule[]) => keyed(rules, 'BaseSpeed').map((r) => [r['selector'], r['value']]);
+
+  it('each adds its trait and its language only if the creature speaks one', () => {
+    const want: Record<string, string> = { air: 'sussuran', earth: 'petran', fire: 'pyric', metal: 'talican', water: 'thalassic', wood: 'muan' };
+    for (const [id, lang] of Object.entries(want)) {
+      const t = findTemplate(id)!;
+      expect(t.group).toBe('Elemental');
+      expect(t.source).toMatch(/^Pathfinder Rage of Elements pg\. \d+$/);
+      expect(addedTraits(rulesOf(id))[0], id).toBe(id);
+      expect(langs(rulesOf(id)), id).toEqual([lang]);
+      expect(langs(rulesOf(id, facts({ hasLanguages: false }))), id).toEqual([]);
+      expect(t.build(facts(), {}).byHand.at(-1), id).toContain(`${id} spells of the same rank`);
+    }
+  });
+
+  it('Air flies at 8th level; below that the GM decides', () => {
+    expect(speeds(rulesOf('air', facts({ level: 8 })))).toEqual([['fly', 25]]);
+    expect(speeds(rulesOf('air', facts({ level: 7 })))).toEqual([]);
+    expect(findTemplate('air')!.build(facts({ level: 7 }), {}).byHand[0]).toContain('no ranged attacks');
+    expect(findTemplate('air')!.build(facts({ level: 8 }), {}).byHand).toHaveLength(1);
+  });
+
+  it('Earth: tremorsense 60 imprecise, burrow 20 or 40', () => {
+    expect(keyed(rulesOf('earth'), 'Sense')).toEqual([{ key: 'Sense', selector: 'tremorsense', acuity: 'imprecise', range: 60 }]);
+    expect(speeds(rulesOf('earth', facts({ level: 7 })))).toEqual([['burrow', 20]]);
+    expect(speeds(rulesOf('earth', facts({ level: 8 })))).toEqual([['burrow', 40]]);
+  });
+
+  it('Fire: fire immunity, Strikes by hand', () => {
+    expect(immune(rulesOf('fire'))).toEqual(['fire']);
+    expect(findTemplate('fire')!.build(facts(), {}).byHand[0]).toContain('fire damage');
+  });
+
+  it('Metal and Water: HP down 6/10/20/30 and a resistance 3/5/10/15', () => {
+    for (const [id, type] of [['metal', 'electricity'], ['water', 'fire']] as const) {
+      const rules = rulesOf(id);
+      const hp = keyed(rules, 'FlatModifier').find((r) => r['selector'] === 'hp')!;
+      expect([3, 4, 9, 14].map((l) => resolve(hp['value'], l)), id).toEqual([-6, -10, -20, -30]);
+      const res = keyed(rules, 'Resistance');
+      expect(res.map((r) => r['type'])).toEqual([type]);
+      expect([3, 8, 13, 20].map((l) => resolve(res[0]!['value'], l)), id).toEqual([3, 5, 10, 15]);
+    }
+  });
+
+  it('Water: amphibious by default or aquatic, swim 25 or 40', () => {
+    expect(addedTraits(rulesOf('water'))).toEqual(['water', 'amphibious']);
+    expect(addedTraits(rulesOf('water', facts(), { aquatic: true }))).toEqual(['water', 'aquatic']);
+    expect(speeds(rulesOf('water', facts({ level: 7 })))).toEqual([['swim', 25]]);
+    expect(speeds(rulesOf('water', facts({ level: 8 })))).toEqual([['swim', 40]]);
+  });
+
+  it('Wood: HP up 10/20/40/60, weak to fire and axes, plant optional', () => {
+    const rules = rulesOf('wood');
+    const hp = keyed(rules, 'FlatModifier').find((r) => r['selector'] === 'hp')!;
+    expect([0, 5, 10, 15].map((l) => resolve(hp['value'], l))).toEqual([10, 20, 40, 60]);
+    expect(keyed(rules, 'Weakness').map((r) => r['type'])).toEqual(['fire', 'axes']);
+    expect(addedTraits(rules)).toEqual(['wood']);
+    expect(addedTraits(rulesOf('wood', facts(), { plant: true }))).toEqual(['wood', 'plant']);
+  });
+
+  it('every HP modifier has its own slug, so two templates stack', () => {
+    const slugs = TEMPLATES.flatMap((t) => keyed(t.build(facts(), {}).rules, 'FlatModifier')).filter((r) => r['selector'] === 'hp').map((r) => r['slug']);
+    expect(slugs).toHaveLength(6);
+    expect(new Set(slugs).size).toBe(6);
+    expect(keyed(rulesOf('wood'), 'FlatModifier')[0]).toMatchObject({ slug: 'wood-template-hp', label: 'Wood template' });
+  });
+});
+
 describe('build', () => {
   it('makes one effect with the rules and one action per ability, all flagged', () => {
     const built = buildTemplate(findTemplate('ghoul')!, facts(), {});
@@ -205,11 +279,13 @@ describe('readFacts', () => {
       },
       'uuid',
     );
-    expect(f).toEqual({ level: 6, highestSpeed: 40, canFly: false, highestSkill: 14, slowedUuid: 'uuid' });
+    expect(f).toEqual({ level: 6, highestSpeed: 40, canFly: false, highestSkill: 14, slowedUuid: 'uuid', hasLanguages: false });
+    expect(readFacts({ system: { details: { languages: { value: ['common'] } } } }, null).hasLanguages).toBe(true);
+    expect(readFacts({ system: { details: { languages: { value: [] } } } }, null).hasLanguages).toBe(false);
     expect(readFacts({ system: { movement: { speeds: { fly: { value: 30 } } } } }, null).canFly).toBe(true);
   });
 
   it('defaults when the creature has nothing to read', () => {
-    expect(readFacts({}, null)).toEqual({ level: 0, highestSpeed: 0, canFly: false, highestSkill: 0, slowedUuid: null });
+    expect(readFacts({}, null)).toEqual({ level: 0, highestSpeed: 0, canFly: false, highestSkill: 0, slowedUuid: null, hasLanguages: false });
   });
 });

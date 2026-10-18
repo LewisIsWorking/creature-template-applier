@@ -29,11 +29,13 @@ attack. Those are listed on the template's effect under **Still to do by hand**.
 
 ## Templates
 
-The nine undead adjustments from *Pathfinder Book of the Dead* (pages 72 and 73): Undead, Ghost,
-Ghoul, Mummy, Shadow, Skeleton, Vampire, Wight and Zombie. The system's remastered names are used:
-void healing for negative healing, and vitality for positive.
+- **Undead**, the nine adjustments from *Pathfinder Book of the Dead* (pages 72 and 73): Undead,
+  Ghost, Ghoul, Mummy, Shadow, Skeleton, Vampire, Wight and Zombie. The system's remastered names
+  are used: void healing for negative healing, and vitality for positive.
+- **Elemental**, the six adjustments from *Pathfinder Rage of Elements*: Air, Earth, Fire, Metal,
+  Water and Wood.
 
-More groups (the elemental, ancestry and mythic adjustments) are planned.
+More groups (the ancestry and mythic adjustments) are planned.
 
 ## Install
 

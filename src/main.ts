@@ -62,6 +62,10 @@ function dialogContent(actor: any): string {
       <select name="template"><option value="">(none)</option>${options}</select></div>
     <div class="form-group"><label>Mindless</label><input type="checkbox" name="mindless">
       <p class="hint">Undead and Skeleton only.</p></div>
+    <div class="form-group"><label>Aquatic</label><input type="checkbox" name="aquatic">
+      <p class="hint">Water only: aquatic instead of amphibious.</p></div>
+    <div class="form-group"><label>Plant</label><input type="checkbox" name="plant">
+      <p class="hint">Wood only: a growing plant also gets the plant trait.</p></div>
     <div class="form-group"><label>Bypassed by</label>
       <select name="bypass"><option value="silver">silver</option><option value="cold-iron">cold iron</option><option value="wood">wood</option></select>
       <p class="hint">Vampire only: the material that gets through its resistance.</p></div>
@@ -89,6 +93,8 @@ async function openDialog(actor: any): Promise<void> {
   const choices: TemplateChoices = {
     ...(template.choices.includes('mindless') ? { mindless: data['mindless'] === true } : {}),
     ...(template.choices.includes('bypass') ? { bypass: String(data['bypass']) as Bypass } : {}),
+    ...(template.choices.includes('aquatic') ? { aquatic: data['aquatic'] === true } : {}),
+    ...(template.choices.includes('plant') ? { plant: data['plant'] === true } : {}),
   };
   try {
     const byHand = await apply(actor, id, choices);

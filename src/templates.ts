@@ -39,15 +39,23 @@ export interface CreatureFacts {
   readonly highestSkill: number;
   /** The Slowed condition's UUID in this system, for Zombie; null if the system has none. */
   readonly slowedUuid: string | null;
+  /** Whether it speaks any language: the elemental adjustments add one only if it does. */
+  readonly hasLanguages: boolean;
 }
 
 export type Bypass = 'cold-iron' | 'silver' | 'wood';
 
 export interface TemplateChoices {
   readonly mindless?: boolean;
+  /** Water only: aquatic instead of amphibious. */
+  readonly aquatic?: boolean;
+  /** Wood only: also a plant (a growing plant creature). */
+  readonly plant?: boolean;
   /** Vampire only: the material that bypasses its physical resistance. */
   readonly bypass?: Bypass;
 }
+
+export type Choice = 'mindless' | 'bypass' | 'aquatic' | 'plant';
 
 export interface TemplateResult {
   readonly rules: readonly Rule[];
@@ -62,7 +70,7 @@ export interface CreatureTemplate {
   readonly group: string;
   readonly source: string;
   /** Which choices the apply dialog offers for this template. */
-  readonly choices: readonly ('mindless' | 'bypass')[];
+  readonly choices: readonly Choice[];
   readonly summary: string;
   build(facts: CreatureFacts, choices: TemplateChoices): TemplateResult;
 }
@@ -103,10 +111,12 @@ const voidHealing: Rule = {
   path: 'system.attributes.hp.negativeHealing',
   value: true,
 };
-const hp = (brackets: readonly Bracket[]): Rule => ({
+/** Each template's modifier gets its own slug: modifiers sharing a slug do not stack. */
+const hp = (template: string, brackets: readonly Bracket[]): Rule => ({
   key: 'FlatModifier',
   selector: 'hp',
-  label: 'Template',
+  slug: `${template}-template-hp`,
+  label: `${template[0]!.toUpperCase()}${template.slice(1)} template`,
   value: byLevel(brackets),
 });
 
@@ -126,6 +136,146 @@ const ghostTouchWeaknesses = (): Rule[] =>
   ['force', 'ghost-touch', 'vitality'].map((type) => weakness(type, byLevel(STEP_3_5_10_15)));
 
 const voidStrikes = 'Its physical Strikes deal void damage instead, and are magical.';
+
+/** Rage of Elements's four-step table, used by Metal, Water and Wood. */
+const elementSteps = (values: readonly [number, number, number, number]): Bracket[] => [
+  { end: 3, value: values[0] },
+  { start: 4, end: 8, value: values[1] },
+  { start: 9, end: 13, value: values[2] },
+  { start: 14, value: values[3] },
+];
+
+const language = (facts: CreatureFacts, slug: string): Rule[] =>
+  facts.hasLanguages ? [{ key: 'ActiveEffectLike', mode: 'add', path: 'system.details.languages.value', value: slug }] : [];
+
+/** Speeds that grow at 8th level are set when the template goes on, as BaseSpeed takes no brackets. */
+const speed = (selector: string, value: number): Rule => ({ key: 'BaseSpeed', selector, value });
+
+const spells = (element: string): string =>
+  `If it casts spells, swap them for ${element} spells of the same rank.`;
+
+interface ElementSpec {
+  readonly id: string;
+  readonly name: string;
+  readonly page: number;
+  readonly summary: string;
+  readonly choices?: readonly Choice[];
+  readonly build: (facts: CreatureFacts, choices: TemplateChoices) => TemplateResult;
+}
+
+const element = (e: ElementSpec): CreatureTemplate => ({
+  id: e.id,
+  name: e.name,
+  group: 'Elemental',
+  source: `Pathfinder Rage of Elements pg. ${e.page}`,
+  choices: e.choices ?? [],
+  summary: e.summary,
+  build: e.build,
+});
+
+const ELEMENTAL: readonly CreatureTemplate[] = [
+  element({
+    id: 'air',
+    name: 'Air',
+    page: 67,
+    summary: 'Air trait and Sussuran; flies at 8th level or higher.',
+    build: (facts) => ({
+      rules: [traits('air'), ...language(facts, 'sussuran'), ...(facts.level >= 8 ? [speed('fly', 25)] : [])],
+      abilities: [],
+      byHand: [
+        ...(facts.level >= 8
+          ? []
+          : ['Below 8th level, give it a 25-foot fly Speed only if it has no ranged attacks, or you remove them.']),
+        spells('air'),
+      ],
+    }),
+  }),
+  element({
+    id: 'earth',
+    name: 'Earth',
+    page: 91,
+    summary: 'Earth trait, Petran, tremorsense and a burrow Speed.',
+    build: (facts) => ({
+      rules: [
+        traits('earth'),
+        ...language(facts, 'petran'),
+        { key: 'Sense', selector: 'tremorsense', acuity: 'imprecise', range: 60 },
+        speed('burrow', facts.level >= 8 ? 40 : 20),
+      ],
+      abilities: [],
+      byHand: [spells('earth')],
+    }),
+  }),
+  element({
+    id: 'fire',
+    name: 'Fire',
+    page: 115,
+    summary: 'Fire trait, Pyric and fire immunity; its Strikes burn.',
+    build: (facts) => ({
+      rules: [traits('fire'), ...language(facts, 'pyric'), ...immunities(['fire'])],
+      abilities: [],
+      byHand: [
+        'Make one damage die of each Strike fire damage. A Strike with only one die deals 1 extra fire damage instead.',
+        spells('fire'),
+      ],
+    }),
+  }),
+  element({
+    id: 'metal',
+    name: 'Metal',
+    page: 139,
+    summary: 'Metal trait and Talican; fewer Hit Points; resists electricity.',
+    build: (facts) => ({
+      rules: [
+        traits('metal'),
+        ...language(facts, 'talican'),
+        hp('metal', elementSteps([-6, -10, -20, -30])),
+        resistance('electricity', byLevel(elementSteps([3, 5, 10, 15]))),
+      ],
+      abilities: [],
+      byHand: [
+        'If it has metal spikes or blades, you may give its physical Strikes versatile P or versatile S.',
+        spells('metal'),
+      ],
+    }),
+  }),
+  element({
+    id: 'water',
+    name: 'Water',
+    page: 169,
+    choices: ['aquatic'],
+    summary: 'Water trait, Thalassic and a swim Speed; amphibious or aquatic; fewer Hit Points; resists fire.',
+    build: (facts, { aquatic = false }) => ({
+      rules: [
+        traits('water', aquatic ? 'aquatic' : 'amphibious'),
+        ...language(facts, 'thalassic'),
+        hp('water', elementSteps([-6, -10, -20, -30])),
+        resistance('fire', byLevel(elementSteps([3, 5, 10, 15]))),
+        speed('swim', facts.level >= 8 ? 40 : 25),
+      ],
+      abilities: [],
+      byHand: [spells('water')],
+    }),
+  }),
+  element({
+    id: 'wood',
+    name: 'Wood',
+    page: 193,
+    choices: ['plant'],
+    summary: 'Wood trait and Muan; more Hit Points; weak to fire and axes.',
+    build: (facts, { plant = false }) => ({
+      rules: [
+        traits('wood', ...(plant ? ['plant'] : [])),
+        ...language(facts, 'muan'),
+        hp('wood', elementSteps([10, 20, 40, 60])),
+        weakness('fire', byLevel(elementSteps([3, 5, 10, 15]))),
+        weakness('axes', byLevel(elementSteps([3, 5, 10, 15]))),
+      ],
+      abilities: [],
+      byHand: [spells('wood')],
+    }),
+  }),
+];
 
 export const TEMPLATES: readonly CreatureTemplate[] = [
   {
@@ -308,7 +458,7 @@ export const TEMPLATES: readonly CreatureTemplate[] = [
           ...(mindless ? [] : [necril]),
           ...immunities([...BASE_IMMUNITIES, ...(mindless ? ['mental'] : [])]),
           ...['cold', 'electricity', 'fire', 'piercing', 'slashing'].map((t) => resistance(t, byLevel(resist))),
-          hp([
+          hp('skeleton', [
             { end: -1, value: -2 },
             { start: 0, end: 1, value: -4 },
             { start: 2, end: 5, value: -10 },
@@ -344,7 +494,7 @@ export const TEMPLATES: readonly CreatureTemplate[] = [
           necril,
           ...immunities(['death-effects', 'disease', 'paralyzed', 'poison', 'sleep']),
           resistance('physical', byLevel(steps), [bypass]),
-          hp([
+          hp('vampire', [
             { end: -1, value: -3 },
             { start: 0, end: 1, value: -5 },
             { start: 2, end: 5, value: -10 },
@@ -417,7 +567,7 @@ export const TEMPLATES: readonly CreatureTemplate[] = [
           ...immunities([...BASE_IMMUNITIES, 'mental']),
           weakness('vitality', byLevel(weak)),
           weakness('slashing', byLevel(weak)),
-          hp([
+          hp('zombie', [
             { end: 1, value: 10 },
             { start: 2, end: 5, value: 20 },
             { start: 6, end: 10, value: 50 },
@@ -441,6 +591,7 @@ export const TEMPLATES: readonly CreatureTemplate[] = [
       };
     },
   },
+  ...ELEMENTAL,
 ];
 
 export function findTemplate(id: string): CreatureTemplate | undefined {
