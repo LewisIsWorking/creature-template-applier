@@ -1,5 +1,11 @@
 # creature-template-applier
 
+## 0.2.1
+
+### Patch Changes
+
+- [#6](https://github.com/LewisIsWorking/creature-template-applier/pull/6) [`9ab09ab`](https://github.com/LewisIsWorking/creature-template-applier/commit/9ab09abc5a0c8ef14e335a6b22fe75b39c89500b) Thanks [@LewisIsWorking](https://github.com/LewisIsWorking)! - Wood's weakness to axes now applies: it used a type the system accepts for resistances only.
+
 ## 0.2.0
 
 ### Minor Changes
