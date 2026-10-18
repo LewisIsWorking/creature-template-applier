@@ -8,6 +8,7 @@ export interface CreatureLike {
   readonly level?: number;
   readonly system?: {
     readonly movement?: { readonly speeds?: Record<string, { readonly value?: unknown } | null | undefined> };
+    readonly details?: { readonly languages?: { readonly value?: unknown } };
   };
   readonly skills?: Record<string, { readonly mod?: unknown } | undefined>;
 }
@@ -27,5 +28,9 @@ export function readFacts(creature: CreatureLike, slowedUuid: string | null): Cr
     canFly: speeds.some((s) => s.type === 'fly'),
     highestSkill: skills.length > 0 ? Math.max(...skills) : 0,
     slowedUuid,
+    hasLanguages: (() => {
+      const langs = creature.system?.details?.languages?.value;
+      return Array.isArray(langs) && langs.length > 0;
+    })(),
   };
 }

@@ -117,6 +117,7 @@ const actorId: string = await page.evaluate(async () => {
     'system.attributes.hp.max': 60,
     'system.attributes.hp.value': 60,
     'system.movement.speeds.land.value': 25,
+    'system.details.languages.value': ['common'],
   });
   return a.id;
 });
@@ -189,6 +190,21 @@ const CASES: [string, Record<string, unknown>, Expect][] = [
     ['Feed', s.items.includes('Feed')],
   ]],
   ['wight', {}, (s) => [['traits wight', has(s.traits, 'wight', 'undead')], ['Drain Life', s.items.includes('Drain Life')]]],
+  ['air', {}, (s) => [['trait air', has(s.traits, 'air')], ['Sussuran', s.languages.includes('sussuran'), s.languages.join()], ['no fly Speed below 8th', !s.speeds['fly']]]],
+  ['earth', {}, (s) => [['tremorsense', s.senses.includes('tremorsense'), s.senses.join()], ['burrow 20', s.speeds['burrow'] === 20, JSON.stringify(s.speeds)], ['Petran', s.languages.includes('petran')]]],
+  ['fire', {}, (s) => [['fire immunity', has(s.immunities, 'fire')], ['Pyric', s.languages.includes('pyric')]]],
+  ['metal', {}, (s) => [['HP 60 -> 50', s.hpMax === 50, String(s.hpMax)], ['resist electricity 5', s.resistances['electricity']?.value === 5, JSON.stringify(s.resistances)]]],
+  ['water', {}, (s) => [
+    ['traits water + amphibious', has(s.traits, 'water', 'amphibious')],
+    ['HP 60 -> 50', s.hpMax === 50, String(s.hpMax)],
+    ['resist fire 5', s.resistances['fire']?.value === 5, JSON.stringify(s.resistances)],
+    ['swim 25', s.speeds['swim'] === 25, JSON.stringify(s.speeds)],
+  ]],
+  ['wood', { plant: true }, (s) => [
+    ['traits wood + plant', has(s.traits, 'wood', 'plant')],
+    ['HP 60 -> 80', s.hpMax === 80, String(s.hpMax)],
+    ['weak 5 to fire and axes', s.weaknesses['fire'] === 5 && s.weaknesses['axes'] === 5, JSON.stringify(s.weaknesses)],
+  ]],
   ['zombie', {}, (s) => [
     ['HP 60 -> 80', s.hpMax === 80, String(s.hpMax)],
     ['weak 5 to vitality and slashing', s.weaknesses['vitality'] === 5 && s.weaknesses['slashing'] === 5, JSON.stringify(s.weaknesses)],
@@ -207,6 +223,14 @@ for (const [id, choices, expect] of CASES) {
   const back = await snapshot(page, actorId);
   check(`${id}: removing it restores the NPC`, removed > 0 && JSON.stringify(back) === JSON.stringify(base), removed > 0 ? '' : 'nothing removed');
 }
+
+// Two templates that both change Hit Points: each keeps its own modifier.
+await apply('wood');
+await apply('skeleton');
+const twoHp = await snapshot(page, actorId);
+check('Wood + Skeleton stack their Hit Points', twoHp.hpMax === 70, `60 + 20 - 10 -> ${twoHp.hpMax}`);
+await remove('wood');
+await remove('skeleton');
 
 // Stacking: Elite on top of Skeleton. Both change Hit Points; Skeleton's cut must land on Elite's total.
 await page.evaluate(async (id) => {
