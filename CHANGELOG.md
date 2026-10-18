@@ -1,5 +1,11 @@
 # creature-template-applier
 
+## 0.1.1
+
+### Patch Changes
+
+- [#2](https://github.com/LewisIsWorking/creature-template-applier/pull/2) [`c5cb3dd`](https://github.com/LewisIsWorking/creature-template-applier/commit/c5cb3dd51ba839b4d968cf9e51472f9157d04761) Thanks [@LewisIsWorking](https://github.com/LewisIsWorking)! - Zombie now really makes the creature slowed 1: the condition is granted by its compendium UUID, not by a copy's.
+
 ## 0.1.0
 
 ### Minor Changes
