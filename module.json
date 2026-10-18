@@ -1,0 +1,46 @@
+{
+  "id": "creature-template-applier",
+  "title": "PF2e/SF2e Creature Template Applier",
+  "description": "Apply creature templates such as Skeleton, Zombie, Ghost and Vampire to an NPC with one click. Each template is an effect with rule elements plus its new abilities, so it stacks with Elite and Weak and comes off cleanly.",
+  "version": "0.0.0",
+  "authors": [
+    {
+      "name": "Lewis"
+    }
+  ],
+  "compatibility": {
+    "minimum": "14",
+    "verified": "14.369",
+    "maximum": "14"
+  },
+  "esmodules": [
+    "dist/creature-template-applier.js"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "relationships": {
+    "systems": [
+      {
+        "id": "pf2e",
+        "type": "system",
+        "compatibility": {}
+      },
+      {
+        "id": "sf2e",
+        "type": "system",
+        "compatibility": {}
+      }
+    ]
+  },
+  "url": "https://github.com/LewisIsWorking/creature-template-applier",
+  "manifest": "https://github.com/LewisIsWorking/creature-template-applier/releases/latest/download/module.json",
+  "download": "https://github.com/LewisIsWorking/creature-template-applier/releases/latest/download/module.zip",
+  "readme": "https://github.com/LewisIsWorking/creature-template-applier/blob/main/README.md",
+  "bugs": "https://github.com/LewisIsWorking/creature-template-applier/issues",
+  "license": "https://github.com/LewisIsWorking/creature-template-applier/blob/main/LICENSE"
+}

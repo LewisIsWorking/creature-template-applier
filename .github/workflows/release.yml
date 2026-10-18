@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+  # Run by hand to (re)package the current version, e.g. after a failed attach.
+  workflow_dispatch:
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  version:
+    name: Version or release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+
+      # Pending changesets: opens a "Version Packages" pull request. That PR merged: tags the release.
+      - name: Create version pull request or tag the release
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          version: npm run changeset:version
+          publish: npm run changeset:tag
+          commit: 'chore: version packages'
+          title: 'chore: version packages'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Packaged in the SAME job: a tag pushed with GITHUB_TOKEN triggers no other workflow.
+      - name: Package and attach module.zip and module.json
+        if: steps.changesets.outputs.published == 'true' || github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          export VERSION
+          npm run build
+          node scripts/stamp-manifest.ts
+          zip -r module.zip module.json dist lang licenses LICENSE README.md
+          # changesets/action makes no release without a CHANGELOG entry, so make sure one exists.
+          gh release view "v${VERSION}" --repo "$REPO" >/dev/null 2>&1 \
+            || gh release create "v${VERSION}" --repo "$REPO" --title "v${VERSION}" --generate-notes
+          gh release upload "v${VERSION}" module.zip module.json --repo "$REPO" --clobber
+
+      # Lists the new version on foundryvtt.com. Skipped, with a warning, until the package is registered there
+      # and its FOUNDRY_RELEASE_TOKEN secret is set.
+      - name: Publish the release to foundryvtt.com
+        if: (steps.changesets.outputs.published == 'true' || github.event_name == 'workflow_dispatch')
+        env:
+          FOUNDRY_RELEASE_TOKEN: ${{ secrets.FOUNDRY_RELEASE_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          if [ -z "$FOUNDRY_RELEASE_TOKEN" ]; then
+            echo "::warning::FOUNDRY_RELEASE_TOKEN is not set; not listed on foundryvtt.com."
+            exit 0
+          fi
+          node scripts/publish-foundry.ts
