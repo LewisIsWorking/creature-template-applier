@@ -1,5 +1,11 @@
 # creature-template-applier
 
+## 0.2.0
+
+### Minor Changes
+
+- [#4](https://github.com/LewisIsWorking/creature-template-applier/pull/4) [`8ab5d80`](https://github.com/LewisIsWorking/creature-template-applier/commit/8ab5d808150ad6e1020a1085970d40735fe5d748) Thanks [@LewisIsWorking](https://github.com/LewisIsWorking)! - The six elemental adjustments from Rage of Elements: Air, Earth, Fire, Metal, Water and Wood. Two templates that both change Hit Points now stack, each with its own modifier.
+
 ## 0.1.1
 
 ### Patch Changes
