@@ -49,6 +49,18 @@ async function join(): Promise<Page> {
   if (PASSWORD) await page.fill('input[name=password]', PASSWORD);
   await page.click('button[name=join]', { noWaitAfter: true });
   await page.waitForFunction(() => (globalThis as any).game?.ready === true, null, SLOW);
+  // A fresh world has the module installed but off: switch it on and reload once.
+  const enabled = await page.evaluate(async () => {
+    const g = globalThis as any;
+    if (g.game.modules.get('creature-template-applier')?.active) return true;
+    const config = g.game.settings.get('core', 'moduleConfiguration');
+    await g.game.settings.set('core', 'moduleConfiguration', { ...config, 'creature-template-applier': true });
+    return false;
+  });
+  if (!enabled) {
+    await page.reload({ waitUntil: 'domcontentloaded' });
+    await page.waitForFunction(() => (globalThis as any).game?.ready === true, null, SLOW);
+  }
   return page;
 }
 
@@ -64,6 +76,7 @@ interface Snapshot {
   speeds: Record<string, number>;
   languages: string[];
   items: string[];
+  slowed: boolean;
 }
 
 const snapshot = (page: Page, id: string): Promise<Snapshot> =>
@@ -85,6 +98,7 @@ const snapshot = (page: Page, id: string): Promise<Snapshot> =>
       speeds,
       languages: [...(a.system.details.languages?.value ?? [])],
       items: a.items.map((i: any) => i.name).sort(),
+      slowed: !!a.hasCondition?.('slowed'),
     };
   }, id);
 
@@ -178,7 +192,7 @@ const CASES: [string, Record<string, unknown>, Expect][] = [
   ['zombie', {}, (s) => [
     ['HP 60 -> 80', s.hpMax === 80, String(s.hpMax)],
     ['weak 5 to vitality and slashing', s.weaknesses['vitality'] === 5 && s.weaknesses['slashing'] === 5, JSON.stringify(s.weaknesses)],
-    ['slowed', s.items.some((n) => /slowed/i.test(n)), s.items.join()],
+    ['slowed 1', s.slowed, s.items.join()],
     ['mental immunity', has(s.immunities, 'mental')],
   ]],
 ];
