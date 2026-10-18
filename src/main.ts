@@ -14,13 +14,16 @@ declare const foundry: any;
 
 const SYSTEMS = new Set(['pf2e', 'sf2e']);
 
+/**
+ * The Slowed condition's compendium UUID. The system's ConditionManager keys every condition both by
+ * slug and by that UUID, so find the UUID key whose condition is the slug's.
+ */
 function slowedUuid(): string | null {
-  const sys = game[game.system.id] ?? game.pf2e;
-  try {
-    return sys?.ConditionManager?.getCondition?.('slowed')?.uuid ?? null;
-  } catch {
-    return null;
-  }
+  const conditions: Map<string, unknown> | undefined = (game[game.system.id] ?? game.pf2e)?.ConditionManager?.conditions;
+  const slowed = conditions?.get('slowed');
+  if (!conditions || !slowed) return null;
+  for (const [key, value] of conditions) if (value === slowed && key.startsWith('Compendium.')) return key;
+  return null;
 }
 
 async function apply(actor: any, id: string, choices: TemplateChoices = {}): Promise<string[]> {
