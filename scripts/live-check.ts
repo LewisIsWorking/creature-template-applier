@@ -203,7 +203,7 @@ const CASES: [string, Record<string, unknown>, Expect][] = [
   ['wood', { plant: true }, (s) => [
     ['traits wood + plant', has(s.traits, 'wood', 'plant')],
     ['HP 60 -> 80', s.hpMax === 80, String(s.hpMax)],
-    ['weak 5 to fire and axes', s.weaknesses['fire'] === 5 && s.weaknesses['axes'] === 5, JSON.stringify(s.weaknesses)],
+    ['weak 5 to fire and axes', s.weaknesses['fire'] === 5 && s.weaknesses['axe-vulnerability'] === 5, JSON.stringify(s.weaknesses)],
   ]],
   ['zombie', {}, (s) => [
     ['HP 60 -> 80', s.hpMax === 80, String(s.hpMax)],
