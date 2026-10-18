@@ -209,7 +209,7 @@ describe('elemental templates', () => {
     const rules = rulesOf('wood');
     const hp = keyed(rules, 'FlatModifier').find((r) => r['selector'] === 'hp')!;
     expect([0, 5, 10, 15].map((l) => resolve(hp['value'], l))).toEqual([10, 20, 40, 60]);
-    expect(keyed(rules, 'Weakness').map((r) => r['type'])).toEqual(['fire', 'axes']);
+    expect(keyed(rules, 'Weakness').map((r) => r['type'])).toEqual(['fire', 'axe-vulnerability']);
     expect(addedTraits(rules)).toEqual(['wood']);
     expect(addedTraits(rulesOf('wood', facts(), { plant: true }))).toEqual(['wood', 'plant']);
   });

@@ -269,7 +269,7 @@ const ELEMENTAL: readonly CreatureTemplate[] = [
         ...language(facts, 'muan'),
         hp('wood', elementSteps([10, 20, 40, 60])),
         weakness('fire', byLevel(elementSteps([3, 5, 10, 15]))),
-        weakness('axes', byLevel(elementSteps([3, 5, 10, 15]))),
+        weakness('axe-vulnerability', byLevel(elementSteps([3, 5, 10, 15]))),
       ],
       abilities: [],
       byHand: [spells('wood')],
