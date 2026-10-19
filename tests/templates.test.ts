@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { appliedTemplates, buildTemplate, describe as describeTemplate, MODULE_ID } from '../src/build.ts';
 import { readFacts } from '../src/facts.ts';
-import { byLevel, dcForLevel, findTemplate, LEVEL_FIELD, TEMPLATES, type CreatureFacts, type Rule } from '../src/templates.ts';
+import { byLevel, dcForLevel, findTemplate, LEVEL_FIELD, TEMPLATES, verdantBurstDice, type CreatureFacts, type Rule } from '../src/templates.ts';
 
 const facts = (over: Partial<CreatureFacts> = {}): CreatureFacts => ({
   level: 4,
@@ -29,10 +29,12 @@ function resolve(value: unknown, level: number): number {
 }
 
 describe('templates', () => {
-  it('has the nine Book of the Dead undead adjustments, with unique ids', () => {
+  it('has every template, with unique ids', () => {
     expect(TEMPLATES.map((t) => t.id)).toEqual([
       'undead', 'ghost', 'ghoul', 'mummy', 'shadow', 'skeleton', 'vampire', 'wight', 'zombie',
       'air', 'earth', 'fire', 'metal', 'water', 'wood',
+      'athamaru', 'catfolk', 'dwarf', 'elf', 'gnome', 'goblin', 'halfling', 'hobgoblin', 'kholo',
+      'kobold', 'leshy', 'lizardfolk', 'merfolk', 'orc', 'ratfolk', 'tengu', 'tripkee',
     ]);
     expect(findTemplate('nope')).toBeUndefined();
   });
@@ -219,6 +221,65 @@ describe('elemental templates', () => {
     expect(slugs).toHaveLength(6);
     expect(new Set(slugs).size).toBe(6);
     expect(keyed(rulesOf('wood'), 'FlatModifier')[0]).toMatchObject({ slug: 'wood-template-hp', label: 'Wood template' });
+  });
+});
+
+describe('ancestry templates', () => {
+  const ANCESTRIES = TEMPLATES.filter((t) => t.group === 'Ancestry');
+  const langs = (rules: readonly Rule[]) => rules.filter((r) => r['path'] === 'system.details.languages.value').map((r) => r['value']);
+  const removed = (rules: readonly Rule[]) => keyed(rules, 'ActorTraits').flatMap((r) => r['remove'] as string[]);
+  const senses = (rules: readonly Rule[]) => keyed(rules, 'Sense').map((r) => r['selector']);
+  const small = (id: string) => keyed(rulesOf(id), 'CreatureSize').map((r) => r['value']);
+
+  it('each swaps human for its own trait, from NPC Core', () => {
+    expect(ANCESTRIES).toHaveLength(17);
+    for (const t of ANCESTRIES) {
+      expect(t.source, t.id).toMatch(/^Pathfinder NPC Core pg\. (151|168|169)$/);
+      expect(addedTraits(rulesOf(t.id))[0], t.id).toBe(t.id);
+      expect(removed(rulesOf(t.id)), t.id).toContain('human');
+      expect(t.choices).toEqual([]);
+    }
+  });
+
+  it('languages, including always for a creature with none', () => {
+    expect(langs(rulesOf('gnome'))).toEqual(['fey', 'gnomish']);
+    expect(langs(rulesOf('kobold', facts({ hasLanguages: false })))).toEqual(['sakvroth']);
+    expect(langs(rulesOf('lizardfolk'))).toEqual(['iruxi']);
+    expect(langs(rulesOf('ratfolk'))).toEqual(['ysoki']);
+  });
+
+  it('size, vision and Speeds', () => {
+    expect(small('goblin')).toEqual(['sm']);
+    expect(small('hobgoblin')).toEqual([]);
+    expect(senses(rulesOf('dwarf'))).toEqual(['darkvision']);
+    expect(senses(rulesOf('elf'))).toEqual(['low-light-vision']);
+    expect(senses(rulesOf('halfling'))).toEqual([]);
+    expect(senses(rulesOf('lizardfolk'))).toEqual([]);
+    expect(keyed(rulesOf('dwarf'), 'ActiveEffectLike').find((r) => r['path'] === 'system.movement.speeds.land.value'))
+      .toMatchObject({ mode: 'downgrade', value: 20 });
+    const merfolk = rulesOf('merfolk');
+    expect(keyed(merfolk, 'ActiveEffectLike').find((r) => r['path'] === 'system.movement.speeds.land.value')).toMatchObject({ mode: 'override', value: 5 });
+    expect(keyed(merfolk, 'BaseSpeed')).toEqual([{ key: 'BaseSpeed', selector: 'swim', value: 25 }]);
+    expect(addedTraits(merfolk)).toEqual(['merfolk', 'amphibious']);
+  });
+
+  it('Leshy: plant instead of humanoid, and Verdant Burst by level', () => {
+    expect(addedTraits(rulesOf('leshy'))).toEqual(['leshy', 'plant']);
+    expect(removed(rulesOf('leshy'))).toEqual(['human', 'humanoid']);
+    expect([-1, 0, 1, 3, 4, 13, 20, 24].map(verdantBurstDice)).toEqual(['1d4', '1d4', '1d8', '2d8', '3d8', '7d8', '11d8', '11d8']);
+    const [burst] = findTemplate('leshy')!.build(facts({ level: 6 }), {}).abilities;
+    expect(burst).toMatchObject({ slug: 'verdant-burst', traits: ['healing', 'primal'] });
+    expect(burst!.description).toContain('4d8 Hit Points');
+  });
+
+  it('abilities and the parts left to the GM', () => {
+    expect(findTemplate('halfling')!.build(facts(), {}).abilities.map((a) => a.slug)).toEqual(['keen-eyes']);
+    expect(findTemplate('lizardfolk')!.build(facts(), {}).abilities.map((a) => a.slug)).toEqual(['deep-breath']);
+    expect(findTemplate('orc')!.build(facts(), {})).toMatchObject({ abilities: [], byHand: [] });
+    expect(findTemplate('ratfolk')!.build(facts(), {}).byHand[0]).toBe(
+      'Add a jaws Strike that deals damage equal to its lowest melee Strike, with the agile and finesse traits.',
+    );
+    expect(findTemplate('kholo')!.build(facts(), {}).byHand[0]).toBe('Add a jaws Strike that deals damage equal to its lowest melee Strike.');
   });
 });
 
