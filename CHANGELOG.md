@@ -1,5 +1,11 @@
 # creature-template-applier
 
+## 0.3.0
+
+### Minor Changes
+
+- [#8](https://github.com/LewisIsWorking/creature-template-applier/pull/8) [`ce5e458`](https://github.com/LewisIsWorking/creature-template-applier/commit/ce5e45863542d46a8ff0d6077a9bc3229d87d199) Thanks [@LewisIsWorking](https://github.com/LewisIsWorking)! - Add the seventeen ancestry adjustments from NPC Core: Athamaru, Catfolk, Dwarf, Elf, Gnome, Goblin, Halfling, Hobgoblin, Kholo, Kobold, Leshy, Lizardfolk, Merfolk, Orc, Ratfolk, Tengu and Tripkee.
+
 ## 0.2.1
 
 ### Patch Changes
