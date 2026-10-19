@@ -77,6 +77,9 @@ interface Snapshot {
   languages: string[];
   items: string[];
   slowed: boolean;
+  size: string;
+  /** Traits and languages the system does not know, which would mean a wrong slug. */
+  unknown: string[];
 }
 
 const snapshot = (page: Page, id: string): Promise<Snapshot> =>
@@ -99,6 +102,11 @@ const snapshot = (page: Page, id: string): Promise<Snapshot> =>
       languages: [...(a.system.details.languages?.value ?? [])],
       items: a.items.map((i: any) => i.name).sort(),
       slowed: !!a.hasCondition?.('slowed'),
+      size: a.size,
+      unknown: [
+        ...[...a.system.traits.value].filter((t: string) => !(t in g.CONFIG.PF2E.creatureTraits)),
+        ...[...(a.system.details.languages?.value ?? [])].filter((l: string) => !(l in g.CONFIG.PF2E.languages)),
+      ],
     };
   }, id);
 
@@ -118,6 +126,7 @@ const actorId: string = await page.evaluate(async () => {
     'system.attributes.hp.value': 60,
     'system.movement.speeds.land.value': 25,
     'system.details.languages.value': ['common'],
+    'system.traits.value': ['human', 'humanoid'],
   });
   return a.id;
 });
@@ -205,6 +214,26 @@ const CASES: [string, Record<string, unknown>, Expect][] = [
     ['HP 60 -> 80', s.hpMax === 80, String(s.hpMax)],
     ['weak 5 to fire and axes', s.weaknesses['fire'] === 5 && s.weaknesses['axe-vulnerability'] === 5, JSON.stringify(s.weaknesses)],
   ]],
+  ['athamaru', {}, (s) => [['traits athamaru + amphibious, no human', has(s.traits, 'athamaru', 'amphibious') && !has(s.traits, 'human'), s.traits.join()], ['swim 25', s.speeds['swim'] === 25, JSON.stringify(s.speeds)]]],
+  ['catfolk', {}, (s) => [['Amurrun', s.languages.includes('amurrun'), s.languages.join()], ['low-light vision', s.senses.includes('low-light-vision'), s.senses.join()]]],
+  ['dwarf', {}, (s) => [['darkvision', s.senses.includes('darkvision'), s.senses.join()], ['Speed 25 -> 20', s.speeds['land'] === 20, JSON.stringify(s.speeds)], ['Dwarven', s.languages.includes('dwarven')]]],
+  ['elf', {}, (s) => [['Elven', s.languages.includes('elven')], ['Speed stays 25', s.speeds['land'] === 25]]],
+  ['gnome', {}, (s) => [['Small', s.size === 'sm', s.size], ['Fey + Gnomish', has(s.languages, 'fey', 'gnomish'), s.languages.join()]]],
+  ['goblin', {}, (s) => [['Small', s.size === 'sm', s.size], ['trait goblin', has(s.traits, 'goblin', 'humanoid'), s.traits.join()]]],
+  ['halfling', {}, (s) => [['Small', s.size === 'sm', s.size], ['Keen Eyes', s.items.includes('Keen Eyes'), s.items.join()]]],
+  ['hobgoblin', {}, (s) => [['Medium', s.size === 'med', s.size], ['Goblin', s.languages.includes('goblin')]]],
+  ['kholo', {}, (s) => [['Kholo', s.languages.includes('kholo'), s.languages.join()]]],
+  ['kobold', {}, (s) => [['Sakvroth', s.languages.includes('sakvroth'), s.languages.join()], ['Small', s.size === 'sm', s.size]]],
+  ['leshy', {}, (s) => [
+    ['leshy + plant, no human or humanoid', has(s.traits, 'leshy', 'plant') && !has(s.traits, 'human') && !has(s.traits, 'humanoid'), s.traits.join()],
+    ['Verdant Burst', s.items.includes('Verdant Burst'), s.items.join()],
+  ]],
+  ['lizardfolk', {}, (s) => [['Iruxi', s.languages.includes('iruxi'), s.languages.join()], ['swim 15', s.speeds['swim'] === 15, JSON.stringify(s.speeds)], ['Deep Breath', s.items.includes('Deep Breath')]]],
+  ['merfolk', {}, (s) => [['Speed 5, swim 25', s.speeds['land'] === 5 && s.speeds['swim'] === 25, JSON.stringify(s.speeds)], ['Thalassic', s.languages.includes('thalassic')]]],
+  ['orc', {}, (s) => [['Orcish', s.languages.includes('orcish'), s.languages.join()]]],
+  ['ratfolk', {}, (s) => [['Ysoki', s.languages.includes('ysoki'), s.languages.join()]]],
+  ['tengu', {}, (s) => [['Tengu', s.languages.includes('tengu'), s.languages.join()]]],
+  ['tripkee', {}, (s) => [['Tripkee', s.languages.includes('tripkee'), s.languages.join()], ['Small', s.size === 'sm', s.size]]],
   ['zombie', {}, (s) => [
     ['HP 60 -> 80', s.hpMax === 80, String(s.hpMax)],
     ['weak 5 to vitality and slashing', s.weaknesses['vitality'] === 5 && s.weaknesses['slashing'] === 5, JSON.stringify(s.weaknesses)],
@@ -218,6 +247,7 @@ for (const [id, choices, expect] of CASES) {
   await apply(id, choices);
   const after = await snapshot(page, actorId);
   for (const [name, ok, detail] of expect(after)) check(`${id}: ${name}`, ok, detail ?? '');
+  check(`${id}: every trait and language is one the system knows`, after.unknown.length === 0, after.unknown.join());
   check(`${id}: no rule element warnings`, ruleWarnings.length === warningsBefore, ruleWarnings.slice(warningsBefore).join(' | '));
   const removed = await remove(id);
   const back = await snapshot(page, actorId);

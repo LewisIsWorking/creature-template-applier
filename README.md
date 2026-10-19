@@ -34,8 +34,11 @@ attack. Those are listed on the template's effect under **Still to do by hand**.
   are used: void healing for negative healing, and vitality for positive.
 - **Elemental**, the six adjustments from *Pathfinder Rage of Elements*: Air, Earth, Fire, Metal,
   Water and Wood.
+- **Ancestry**, the seventeen adjustments from *Pathfinder NPC Core* (pages 151, 168 and 169) that
+  turn a human NPC into another ancestry: Athamaru, Catfolk, Dwarf, Elf, Gnome, Goblin, Halfling,
+  Hobgoblin, Kholo, Kobold, Leshy, Lizardfolk, Merfolk, Orc, Ratfolk, Tengu and Tripkee.
 
-More groups (the ancestry and mythic adjustments) are planned.
+More groups (the mythic adjustments) are planned.
 
 ## Install
 

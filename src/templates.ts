@@ -277,6 +277,209 @@ const ELEMENTAL: readonly CreatureTemplate[] = [
   }),
 ];
 
+/** NPC Core's healing table for a leshy's Verdant Burst, by level. */
+const VERDANT_BURST: readonly Bracket[] = [
+  { end: 0, value: 0 },
+  { start: 1, end: 1, value: 1 },
+  { start: 2, end: 3, value: 2 },
+  { start: 4, end: 5, value: 3 },
+  { start: 6, end: 7, value: 4 },
+  { start: 8, end: 9, value: 5 },
+  { start: 10, end: 11, value: 6 },
+  { start: 12, end: 13, value: 7 },
+  { start: 14, end: 15, value: 8 },
+  { start: 16, end: 17, value: 9 },
+  { start: 18, end: 19, value: 10 },
+  { start: 20, value: 11 },
+];
+
+export function verdantBurstDice(level: number): string {
+  const d8s = VERDANT_BURST.find((b) => (b.start ?? -Infinity) <= level && level <= (b.end ?? Infinity))!.value;
+  return d8s === 0 ? '1d4' : `${d8s}d8`;
+}
+
+const landSpeed = (mode: 'override' | 'downgrade', value: number): Rule => ({
+  key: 'ActiveEffectLike',
+  mode,
+  path: 'system.movement.speeds.land.value',
+  value,
+});
+
+const lowLight: Rule = { key: 'Sense', selector: 'low-light-vision' };
+
+const extraStrike = (name: string, traits: string): string =>
+  `Add a ${name} Strike that deals damage equal to its lowest melee Strike${traits}.`;
+
+interface AncestrySpec {
+  readonly id: string;
+  readonly name: string;
+  readonly page: number;
+  readonly languages: readonly string[];
+  readonly small?: boolean;
+  /** Traits added besides the ancestry's own. */
+  readonly alsoTraits?: readonly string[];
+  /** Traits removed besides human. */
+  readonly alsoRemove?: readonly string[];
+  readonly sense?: Rule;
+  readonly rules?: readonly Rule[];
+  readonly abilities?: (facts: CreatureFacts) => readonly AbilitySpec[];
+  readonly byHand?: readonly string[];
+  readonly summary: string;
+}
+
+/**
+ * NPC Core's ancestry adjustments turn a human NPC into another ancestry: the ancestry trait in place
+ * of human, its languages, its vision, and for some a size, a Speed or a natural Strike.
+ */
+const ancestry = (a: AncestrySpec): CreatureTemplate => ({
+  id: a.id,
+  name: a.name,
+  group: 'Ancestry',
+  source: `Pathfinder NPC Core pg. ${a.page}`,
+  choices: [],
+  summary: a.summary,
+  build: (facts) => ({
+    rules: [
+      { key: 'ActorTraits', add: [a.id, ...(a.alsoTraits ?? [])], remove: ['human', ...(a.alsoRemove ?? [])] },
+      ...a.languages.map((value): Rule => ({ key: 'ActiveEffectLike', mode: 'add', path: 'system.details.languages.value', value })),
+      ...(a.small ? [{ key: 'CreatureSize', value: 'sm' }] : []),
+      ...(a.sense ? [a.sense] : []),
+      ...(a.rules ?? []),
+    ],
+    abilities: a.abilities?.(facts) ?? [],
+    byHand: a.byHand ?? [],
+  }),
+});
+
+const ANCESTRY: readonly CreatureTemplate[] = [
+  ancestry({ id: 'athamaru', name: 'Athamaru', page: 151, languages: ['thalassic'], alsoTraits: ['amphibious'], sense: lowLight, rules: [speed('swim', 25)], summary: 'Athamaru and amphibious traits, Thalassic, low-light vision and a 25-foot swim Speed.' }),
+  ancestry({ id: 'catfolk', name: 'Catfolk', page: 168, languages: ['amurrun'], sense: lowLight, summary: 'Catfolk trait, Amurrun and low-light vision.' }),
+  ancestry({
+    id: 'dwarf',
+    name: 'Dwarf',
+    page: 168,
+    languages: ['dwarven'],
+    sense: darkvision,
+    rules: [landSpeed('downgrade', 20)],
+    byHand: ['Give it a clan dagger. You may also give it a clan dagger Strike that deals damage equal to its lowest melee Strike.'],
+    summary: 'Dwarf trait, Dwarven, darkvision and a Speed of at most 20 feet.',
+  }),
+  ancestry({
+    id: 'elf',
+    name: 'Elf',
+    page: 168,
+    languages: ['elven'],
+    sense: lowLight,
+    byHand: ['You may raise its Speed to 30 feet if it is lower.'],
+    summary: 'Elf trait, Elven and low-light vision.',
+  }),
+  ancestry({ id: 'gnome', name: 'Gnome', page: 168, languages: ['fey', 'gnomish'], small: true, sense: lowLight, summary: 'Small; gnome trait, Fey, Gnomish and low-light vision.' }),
+  ancestry({ id: 'goblin', name: 'Goblin', page: 168, languages: ['goblin'], small: true, sense: darkvision, summary: 'Small; goblin trait, Goblin and darkvision.' }),
+  ancestry({
+    id: 'halfling',
+    name: 'Halfling',
+    page: 168,
+    languages: ['halfling'],
+    small: true,
+    abilities: () => [
+      {
+        slug: 'keen-eyes',
+        name: 'Keen Eyes',
+        actionType: 'passive',
+        category: 'interaction',
+        traits: [],
+        description:
+          '<p>The halfling gets a +2 circumstance bonus to Seek hidden or undetected creatures within 30 feet. The flat check to target a concealed creature is DC 3, and a hidden one DC 9.</p>',
+      },
+    ],
+    summary: 'Small; halfling trait, Halfling and Keen Eyes.',
+  }),
+  ancestry({ id: 'hobgoblin', name: 'Hobgoblin', page: 168, languages: ['goblin'], sense: darkvision, summary: 'Hobgoblin trait, Goblin and darkvision.' }),
+  ancestry({
+    id: 'kholo',
+    name: 'Kholo',
+    page: 169,
+    languages: ['kholo'],
+    sense: darkvision,
+    byHand: [extraStrike('jaws', '')],
+    summary: 'Kholo trait, Kholo, darkvision and a jaws Strike.',
+  }),
+  ancestry({ id: 'kobold', name: 'Kobold', page: 169, languages: ['sakvroth'], small: true, sense: darkvision, summary: 'Small; kobold trait, Sakvroth and darkvision.' }),
+  ancestry({
+    id: 'leshy',
+    name: 'Leshy',
+    page: 169,
+    languages: ['fey'],
+    small: true,
+    alsoTraits: ['plant'],
+    alsoRemove: ['humanoid'],
+    sense: lowLight,
+    abilities: (facts) => [
+      {
+        slug: 'verdant-burst',
+        name: 'Verdant Burst',
+        actionType: 'passive',
+        category: 'defensive',
+        traits: ['healing', 'primal'],
+        description:
+          `<p>When the leshy dies, primal energy bursts from its body. Each plant creature in a 30-foot emanation regains ${verdantBurstDice(facts.level)} Hit Points (by the leshy's level), and the area fills with plants and becomes difficult terrain. Where the plants cannot grow, they wither after 24 hours.</p>`,
+      },
+    ],
+    summary: 'Small; leshy and plant traits in place of human and humanoid, Fey, low-light vision and Verdant Burst.',
+  }),
+  ancestry({
+    id: 'lizardfolk',
+    name: 'Lizardfolk',
+    page: 169,
+    languages: ['iruxi'],
+    rules: [speed('swim', 15)],
+    abilities: () => [
+      {
+        slug: 'deep-breath',
+        name: 'Deep Breath',
+        actionType: 'passive',
+        category: 'interaction',
+        traits: [],
+        description: '<p>The iruxi can hold its breath for 15 minutes.</p>',
+      },
+    ],
+    byHand: ['Turn any fist Strikes into claw Strikes that deal slashing damage instead of bludgeoning.'],
+    summary: 'Lizardfolk trait, Iruxi, a 15-foot swim Speed and Deep Breath.',
+  }),
+  ancestry({
+    id: 'merfolk',
+    name: 'Merfolk',
+    page: 151,
+    languages: ['thalassic'],
+    alsoTraits: ['amphibious'],
+    sense: lowLight,
+    rules: [landSpeed('override', 5), speed('swim', 25)],
+    byHand: ['A supramarine chair (use the wheelchair rules) gives it a land Speed equal to its swim Speed.'],
+    summary: 'Merfolk and amphibious traits, Thalassic, low-light vision, a 5-foot Speed and a 25-foot swim Speed.',
+  }),
+  ancestry({ id: 'orc', name: 'Orc', page: 169, languages: ['orcish'], sense: darkvision, summary: 'Orc trait, Orcish and darkvision.' }),
+  ancestry({
+    id: 'ratfolk',
+    name: 'Ratfolk',
+    page: 169,
+    languages: ['ysoki'],
+    small: true,
+    sense: lowLight,
+    byHand: [extraStrike('jaws', ', with the agile and finesse traits')],
+    summary: 'Small; ratfolk trait, Ysoki, low-light vision and a jaws Strike.',
+  }),
+  ancestry({
+    id: 'tengu',
+    name: 'Tengu',
+    page: 169,
+    languages: ['tengu'],
+    sense: lowLight,
+    byHand: [extraStrike('beak', ', with the finesse trait')],
+    summary: 'Tengu trait, Tengu, low-light vision and a beak Strike.',
+  }),
+  ancestry({ id: 'tripkee', name: 'Tripkee', page: 169, languages: ['tripkee'], small: true, sense: lowLight, summary: 'Small; tripkee trait, Tripkee and low-light vision.' }),
+];
+
 export const TEMPLATES: readonly CreatureTemplate[] = [
   {
     id: 'undead',
@@ -592,6 +795,7 @@ export const TEMPLATES: readonly CreatureTemplate[] = [
     },
   },
   ...ELEMENTAL,
+  ...ANCESTRY,
 ];
 
 export function findTemplate(id: string): CreatureTemplate | undefined {
