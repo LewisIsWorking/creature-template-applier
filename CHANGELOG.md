@@ -1,5 +1,11 @@
 # creature-template-applier
 
+## 0.4.0
+
+### Minor Changes
+
+- [#10](https://github.com/LewisIsWorking/creature-template-applier/pull/10) [`312973e`](https://github.com/LewisIsWorking/creature-template-applier/commit/312973ebf6e20c76674c901c2c3c670ae010738b) Thanks [@LewisIsWorking](https://github.com/LewisIsWorking)! - Add the four mythic monster templates from War of Immortals: Mythic Ambusher, Brute, Caster and Striker, with the basic mythic abilities for the creature's level.
+
 ## 0.3.0
 
 ### Minor Changes
