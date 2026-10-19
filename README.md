@@ -38,7 +38,9 @@ attack. Those are listed on the template's effect under **Still to do by hand**.
   turn a human NPC into another ancestry: Athamaru, Catfolk, Dwarf, Elf, Gnome, Goblin, Halfling,
   Hobgoblin, Kholo, Kobold, Leshy, Lizardfolk, Merfolk, Orc, Ratfolk, Tengu and Tripkee.
 
-More groups (the mythic adjustments) are planned.
+- **Mythic**, the four mythic monster templates from *Pathfinder War of Immortals* (pages 168 and
+  169): Mythic Ambusher, Brute, Caster and Striker, each with the basic mythic abilities for its
+  level. Mythic resilience goes to the creature's highest allowed saves first, as the book advises.
 
 ## Install
 

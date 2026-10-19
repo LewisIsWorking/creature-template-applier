@@ -7,6 +7,8 @@
  * level every time it prepares data, so they stay right when the level changes (Elite, Weak).
  */
 
+import { MYTHIC } from './mythic.ts';
+
 /** A PF2e rule element, as stored on an item. */
 export type Rule = Record<string, unknown> & { key: string };
 
@@ -41,6 +43,10 @@ export interface CreatureFacts {
   readonly slowedUuid: string | null;
   /** Whether it speaks any language: the elemental adjustments add one only if it does. */
   readonly hasLanguages: boolean;
+  /** Save modifiers, for where mythic resilience goes. */
+  readonly saves: Readonly<Record<'fortitude' | 'reflex' | 'will', number>>;
+  /** Skill modifiers by slug, for the mythic templates' extreme skills. */
+  readonly skills: Readonly<Record<string, number>>;
 }
 
 export type Bypass = 'cold-iron' | 'silver' | 'wood';
@@ -796,6 +802,7 @@ export const TEMPLATES: readonly CreatureTemplate[] = [
   },
   ...ELEMENTAL,
   ...ANCESTRY,
+  ...MYTHIC,
 ];
 
 export function findTemplate(id: string): CreatureTemplate | undefined {

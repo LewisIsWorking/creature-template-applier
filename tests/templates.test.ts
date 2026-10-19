@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { appliedTemplates, buildTemplate, describe as describeTemplate, MODULE_ID } from '../src/build.ts';
 import { readFacts } from '../src/facts.ts';
+import { casterSpellDc, extremeSkill } from '../src/mythic.ts';
 import { byLevel, dcForLevel, findTemplate, LEVEL_FIELD, TEMPLATES, verdantBurstDice, type CreatureFacts, type Rule } from '../src/templates.ts';
 
 const facts = (over: Partial<CreatureFacts> = {}): CreatureFacts => ({
@@ -10,6 +11,8 @@ const facts = (over: Partial<CreatureFacts> = {}): CreatureFacts => ({
   highestSkill: 12,
   slowedUuid: 'Compendium.pf2e.conditionitems.Item.slowed',
   hasLanguages: true,
+  saves: { fortitude: 10, reflex: 12, will: 8 },
+  skills: { stealth: 9, athletics: 15, acrobatics: 5, arcana: 6, religion: 11 },
   ...over,
 });
 
@@ -35,6 +38,7 @@ describe('templates', () => {
       'air', 'earth', 'fire', 'metal', 'water', 'wood',
       'athamaru', 'catfolk', 'dwarf', 'elf', 'gnome', 'goblin', 'halfling', 'hobgoblin', 'kholo',
       'kobold', 'leshy', 'lizardfolk', 'merfolk', 'orc', 'ratfolk', 'tengu', 'tripkee',
+      'mythic-ambusher', 'mythic-brute', 'mythic-caster', 'mythic-striker',
     ]);
     expect(findTemplate('nope')).toBeUndefined();
   });
@@ -283,6 +287,83 @@ describe('ancestry templates', () => {
   });
 });
 
+describe('mythic templates', () => {
+  const abilities = (id: string, f: CreatureFacts = facts()) => findTemplate(id)!.build(f, {}).abilities;
+  const slugs = (id: string, f?: CreatureFacts) => abilities(id, f).map((a) => a.slug);
+  const resilient = (id: string, f?: CreatureFacts) =>
+    (abilities(id, f).find((a) => a.slug === 'mythic-resilience')?.rules ?? []).map((r) => r['selector']);
+  const resistance = (id: string, f?: CreatureFacts) => abilities(id, f).find((a) => a.slug === 'mythic-resistance')?.description;
+  const skillRaise = (id: string, f: CreatureFacts = facts()) => keyed(rulesOf(id, f), 'FlatModifier')[0];
+
+  it('GM Core tables: extreme skill and the caster spell DC, clamped to -1 to 24', () => {
+    expect([-3, -1, 0, 4, 10, 24, 30].map(extremeSkill)).toEqual([8, 8, 9, 15, 25, 48, 48]);
+    expect([-1, 4, 10, 11, 24].map(casterSpellDc)).toEqual([16, 21, 29, 34, 52]);
+  });
+
+  it('every one is mythic, from War of Immortals, and raises its skill to extreme', () => {
+    for (const t of TEMPLATES.filter((x) => x.group === 'Mythic')) {
+      expect(addedTraits(rulesOf(t.id)), t.id).toEqual(['mythic']);
+      expect(t.source).toMatch(/^Pathfinder War of Immortals pg\. 16[89]$/);
+    }
+    expect(skillRaise('mythic-ambusher')).toMatchObject({ selector: 'stealth', value: 6, slug: 'mythic-ambusher-template-skill' });
+    expect(skillRaise('mythic-striker')).toMatchObject({ selector: 'acrobatics', value: 10 });
+    expect(skillRaise('mythic-caster')).toMatchObject({ selector: 'religion', value: 4 });
+    // Already extreme: nothing to add.
+    expect(skillRaise('mythic-brute', facts({ skills: { athletics: 15 } }))).toBeUndefined();
+    expect(skillRaise('mythic-brute', facts({ skills: {} }))).toMatchObject({ selector: 'athletics', value: 15 });
+  });
+
+  it('resilience goes to the highest allowed saves at 1st, 7th and 13th', () => {
+    expect(resilient('mythic-striker', facts({ level: 0 }))).toEqual([]);
+    expect(resilient('mythic-striker')).toEqual(['reflex']);
+    expect(resilient('mythic-striker', facts({ level: 7 }))).toEqual(['reflex', 'will']);
+    expect(resistance('mythic-striker', facts({ level: 7 }))).toBeUndefined();
+    expect(resistance('mythic-striker', facts({ level: 13 }))).toContain('resistance 6 ');
+    expect(abilities('mythic-striker').find((a) => a.slug === 'mythic-resilience')!.rules).toEqual([
+      { key: 'AdjustDegreeOfSuccess', selector: 'reflex', adjustment: { all: 'one-degree-better' } },
+    ]);
+    expect(abilities('mythic-striker', facts({ level: 7 })).find((a) => a.slug === 'mythic-resilience')!.name).toBe('Mythic Resilience (Reflex and Will)');
+  });
+
+  it('Ambusher: Reflex at any level, the others later, never resistance', () => {
+    expect(resilient('mythic-ambusher', facts({ level: -1 }))).toEqual(['reflex']);
+    expect(resilient('mythic-ambusher', facts({ level: 7 }))).toEqual(['reflex', 'fortitude']);
+    expect(resilient('mythic-ambusher', facts({ level: 13 }))).toEqual(['reflex', 'fortitude', 'will']);
+    expect(resistance('mythic-ambusher', facts({ level: 20 }))).toBeUndefined();
+  });
+
+  it('Brute: resistance equal to its level, then Fortitude and Reflex, never Will', () => {
+    expect(resistance('mythic-brute')).toContain('resistance 4 ');
+    expect(resistance('mythic-brute', facts({ level: 0 }))).toBeUndefined();
+    expect(resilient('mythic-brute')).toEqual([]);
+    expect(resilient('mythic-brute', facts({ level: 13 }))).toEqual(['reflex', 'fortitude']);
+    expect(slugs('mythic-brute')).toContain('mythic-ferocity');
+  });
+
+  it('Caster: no Fortitude, no resistance, Recharge at any level, spell DC by hand', () => {
+    expect(resilient('mythic-caster', facts({ level: 13 }))).toEqual(['reflex', 'will']);
+    expect(resistance('mythic-caster', facts({ level: 13 }))).toBeUndefined();
+    expect(slugs('mythic-caster', facts({ level: 1 }))).toEqual(['mythic-knowledge', 'mythic-weakness-extreme-frailty', 'mythic-resilience', 'mythic-power', 'recharge']);
+    expect(findTemplate('mythic-caster')!.build(facts({ level: 11 }), {}).byHand[0]).toBe('Devastating Magic: set its spell DC to 34 and its spell attack modifier to +26.');
+  });
+
+  it('mythic power actions arrive by level', () => {
+    expect(slugs('mythic-striker', facts({ level: 3 }))).not.toContain('mythic-power');
+    const at4 = abilities('mythic-striker');
+    expect(at4.map((a) => a.slug)).toEqual(['deadly-striker', 'mythic-mobility', 'unimpeded', 'mythic-weakness-infirmity', 'mythic-resilience', 'mythic-power', 'mythic-skill']);
+    expect(at4.find((a) => a.slug === 'mythic-skill')!.rules![1]).toMatchObject({ selector: 'acrobatics', value: 4, predicate: ['mythic-skill'] });
+    expect(slugs('mythic-striker', facts({ level: 10 }))).toContain('recharge');
+    expect(slugs('mythic-striker', facts({ level: 17 }))).toContain('undying-myth');
+    expect(slugs('mythic-striker', facts({ level: 19 }))).not.toContain('reroll');
+    expect(slugs('mythic-striker', facts({ level: 20 }))).toContain('reroll');
+    expect(slugs('mythic-striker', facts({ level: 22 }))).not.toContain('mythic-immunity');
+    expect(abilities('mythic-brute', facts({ level: 23 })).find((a) => a.slug === 'mythic-immunity')!.description).toContain('immune to Strikes');
+    expect(abilities('mythic-caster', facts({ level: 23 })).find((a) => a.slug === 'mythic-immunity')!.description).toContain('harmful spells');
+    expect(findTemplate('mythic-brute')!.build(facts({ level: 3 }), {}).byHand).toEqual([]);
+    expect(findTemplate('mythic-brute')!.build(facts({ level: 20 }), {}).byHand).toHaveLength(3);
+  });
+});
+
 describe('build', () => {
   it('makes one effect with the rules and one action per ability, all flagged', () => {
     const built = buildTemplate(findTemplate('ghoul')!, facts(), {});
@@ -337,16 +418,25 @@ describe('readFacts', () => {
         level: 6,
         system: { movement: { speeds: { land: { value: 25 }, swim: { value: 40 }, fly: null, burrow: { value: 0 }, climb: { value: 'x' } } } },
         skills: { stealth: { mod: 9 }, athletics: { mod: 14 }, broken: undefined, odd: { mod: Number.NaN } },
+        saves: { fortitude: { mod: 12 }, reflex: {}, will: { mod: 7 } },
       },
       'uuid',
     );
-    expect(f).toEqual({ level: 6, highestSpeed: 40, canFly: false, highestSkill: 14, slowedUuid: 'uuid', hasLanguages: false });
+    expect(f).toEqual({
+      level: 6, highestSpeed: 40, canFly: false, highestSkill: 14, slowedUuid: 'uuid', hasLanguages: false,
+      saves: { fortitude: 12, reflex: 0, will: 7 },
+      skills: { stealth: 9, athletics: 14 },
+    });
     expect(readFacts({ system: { details: { languages: { value: ['common'] } } } }, null).hasLanguages).toBe(true);
     expect(readFacts({ system: { details: { languages: { value: [] } } } }, null).hasLanguages).toBe(false);
     expect(readFacts({ system: { movement: { speeds: { fly: { value: 30 } } } } }, null).canFly).toBe(true);
   });
 
   it('defaults when the creature has nothing to read', () => {
-    expect(readFacts({}, null)).toEqual({ level: 0, highestSpeed: 0, canFly: false, highestSkill: 0, slowedUuid: null, hasLanguages: false });
+    expect(readFacts({}, null)).toEqual({
+      level: 0, highestSpeed: 0, canFly: false, highestSkill: 0, slowedUuid: null, hasLanguages: false,
+      saves: { fortitude: 0, reflex: 0, will: 0 },
+      skills: {},
+    });
   });
 });
