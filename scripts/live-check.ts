@@ -78,6 +78,7 @@ interface Snapshot {
   items: string[];
   slowed: boolean;
   size: string;
+  skills: Record<string, number>;
   /** Traits and languages the system does not know, which would mean a wrong slug. */
   unknown: string[];
 }
@@ -103,6 +104,7 @@ const snapshot = (page: Page, id: string): Promise<Snapshot> =>
       items: a.items.map((i: any) => i.name).sort(),
       slowed: !!a.hasCondition?.('slowed'),
       size: a.size,
+      skills: Object.fromEntries(['acrobatics', 'athletics', 'stealth'].map((s) => [s, a.skills[s]?.mod])),
       unknown: [
         ...[...a.system.traits.value].filter((t: string) => !(t in g.CONFIG.PF2E.creatureTraits)),
         ...[...(a.system.details.languages?.value ?? [])].filter((l: string) => !(l in g.CONFIG.PF2E.languages)),
@@ -234,6 +236,20 @@ const CASES: [string, Record<string, unknown>, Expect][] = [
   ['ratfolk', {}, (s) => [['Ysoki', s.languages.includes('ysoki'), s.languages.join()]]],
   ['tengu', {}, (s) => [['Tengu', s.languages.includes('tengu'), s.languages.join()]]],
   ['tripkee', {}, (s) => [['Tripkee', s.languages.includes('tripkee'), s.languages.join()], ['Small', s.size === 'sm', s.size]]],
+  ['mythic-ambusher', {}, (s) => [
+    ['trait mythic', has(s.traits, 'mythic'), s.traits.join()],
+    ['Stealth extreme (+15)', s.skills['stealth'] === 15, JSON.stringify(s.skills)],
+    ['Reflex resilience, Mythic Skill', has(s.items, 'Mythic Resilience (Reflex)', 'Mythic Power', 'Mythic Skill'), s.items.join()],
+  ]],
+  ['mythic-brute', {}, (s) => [
+    ['Athletics extreme (+15)', s.skills['athletics'] === 15, JSON.stringify(s.skills)],
+    ['Mythic Resistance and Ferocity', has(s.items, 'Mythic Resistance', 'Mythic Ferocity', 'Titanic Might'), s.items.join()],
+  ]],
+  ['mythic-caster', {}, (s) => [['Recharge and Mythic Knowledge', has(s.items, 'Recharge', 'Mythic Knowledge'), s.items.join()]]],
+  ['mythic-striker', {}, (s) => [
+    ['Acrobatics extreme (+15)', s.skills['acrobatics'] === 15, JSON.stringify(s.skills)],
+    ['Deadly Striker and Unimpeded', has(s.items, 'Deadly Striker', 'Unimpeded'), s.items.join()],
+  ]],
   ['zombie', {}, (s) => [
     ['HP 60 -> 80', s.hpMax === 80, String(s.hpMax)],
     ['weak 5 to vitality and slashing', s.weaknesses['vitality'] === 5 && s.weaknesses['slashing'] === 5, JSON.stringify(s.weaknesses)],
