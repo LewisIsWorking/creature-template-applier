@@ -1,5 +1,11 @@
 # creature-template-applier
 
+## 0.5.0
+
+### Minor Changes
+
+- [#14](https://github.com/LewisIsWorking/creature-template-applier/pull/14) [`ce6eaf4`](https://github.com/LewisIsWorking/creature-template-applier/commit/ce6eaf4ccd9b6b86c5a3b0c215b142276ec08f85) Thanks [@LewisIsWorking](https://github.com/LewisIsWorking)! - Add the six Howl of the Wild adaptations: Amphibious, Frostbound, Miniature, Sandbound, Twinned and Winged.
+
 ## 0.4.1
 
 ### Patch Changes

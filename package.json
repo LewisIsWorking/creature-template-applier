@@ -1,6 +1,6 @@
 {
   "name": "creature-template-applier",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Apply PF2e and SF2e creature templates (Skeleton, Zombie, Ghost...) to NPCs in Foundry VTT",
   "type": "module",
   "private": true,
