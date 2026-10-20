@@ -3,7 +3,8 @@
  * Frostbound, Miniature, Sandbound, Twinned and Winged. They change no level, Hit Points or defences;
  * each adds Speeds, a skill, a size, a resistance and weakness pair or a few abilities.
  */
-import { byLevel, STEP_3_5_10_15, type AbilitySpec, type CreatureFacts, type CreatureTemplate, type Rule } from './templates.ts';
+import { byLevel, STEP_3_5_10_15 } from './levels.ts';
+import type { AbilitySpec, CreatureFacts, CreatureTemplate, Rule } from './templates.ts';
 
 const source = (page: number): string => `Pathfinder Howl of the Wild pg. ${page}`;
 
