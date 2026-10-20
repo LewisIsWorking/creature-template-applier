@@ -392,6 +392,10 @@ describe('adaptation templates', () => {
       { key: 'ActiveEffectLike', mode: 'upgrade', path: 'system.movement.speeds.land.base', value: 25 },
     ]);
     expect(keyed(rules, 'ActiveEffectLike')).toEqual([]);
+    // No Speed at all: nothing to halve. No Athletics listed: raised from 0.
+    expect(keyed(rulesOf('amphibious', facts({ speeds: {} })), 'BaseSpeed')).toEqual([]);
+    expect(keyed(rulesOf('amphibious', facts({ speeds: {} })), 'ActiveEffectLike')).toEqual([]);
+    expect(skillRaise('amphibious', facts({ skills: {} }))).toMatchObject({ value: 12 });
     expect(skillRaise('amphibious', facts({ highestSkill: 18 }))).toMatchObject({ selector: 'athletics', value: 3, slug: 'amphibious-template-skill' });
     expect(skillRaise('amphibious', facts({ highestSkill: 15 }))).toBeUndefined();
     expect(slugs('amphibious')).toEqual(['drag-along']);
@@ -429,6 +433,7 @@ describe('adaptation templates', () => {
   it('Winged: flies at its highest Speed unless it flies already, top Acrobatics', () => {
     expect(speedOf(rulesOf('winged', facts({ highestSpeed: 35 })), 'fly')).toBe(35);
     expect(speedOf(rulesOf('winged', facts({ canFly: true })), 'fly')).toBeUndefined();
+    expect(speedOf(rulesOf('winged', facts({ highestSpeed: 0 })), 'fly')).toBeUndefined();
     expect(skillRaise('winged')).toMatchObject({ selector: 'acrobatics', value: 7 });
     expect(findTemplate('winged')!.build(facts(), {}).abilities[0]).toMatchObject({ slug: 'dropping-dodge', actionType: 'reaction' });
   });
