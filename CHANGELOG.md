@@ -1,5 +1,11 @@
 # creature-template-applier
 
+## 0.6.0
+
+### Minor Changes
+
+- [#16](https://github.com/LewisIsWorking/creature-template-applier/pull/16) [`cf1ebfe`](https://github.com/LewisIsWorking/creature-template-applier/commit/cf1ebfe52f3fb0b1989c75485b616228fcdf1b0f) Thanks [@LewisIsWorking](https://github.com/LewisIsWorking)! - Add the four Dark Archive cryptids: Experimental, Mutant, Primeval and Rumored, with their optional abilities picked in the apply dialog.
+
 ## 0.5.0
 
 ### Minor Changes
