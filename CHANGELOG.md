@@ -1,5 +1,11 @@
 # creature-template-applier
 
+## 0.4.1
+
+### Patch Changes
+
+- [#12](https://github.com/LewisIsWorking/creature-template-applier/pull/12) [`156fdcc`](https://github.com/LewisIsWorking/creature-template-applier/commit/156fdcc21478b2e046ec2efb878b54873e2cb267) Thanks [@LewisIsWorking](https://github.com/LewisIsWorking)! - Dwarf and Merfolk now change the land Speed: the rule set the computed total, which the system recalculates, instead of the base Speed.
+
 ## 0.4.0
 
 ### Minor Changes
