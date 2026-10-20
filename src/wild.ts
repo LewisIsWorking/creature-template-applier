@@ -12,9 +12,9 @@ const source = (page: number): string => `Pathfinder Howl of the Wild pg. ${page
 export const halfSpeed = (feet: number): number => Math.floor(feet / 10) * 5;
 
 /** Raises a skill to the creature's highest skill modifier, the way Shadow's Stealth works. */
-function topSkill(id: string, name: string, skill: string, facts: CreatureFacts): Rule[] {
+export function topSkill(id: string, name: string, skill: string, facts: CreatureFacts): Rule[] {
   const raise = facts.highestSkill - (facts.skills[skill] ?? 0);
-  return raise > 0 ? [{ key: 'FlatModifier', selector: skill, slug: `${id}-template-skill`, label: `${name} adaptation`, value: raise }] : [];
+  return raise > 0 ? [{ key: 'FlatModifier', selector: skill, slug: `${id}-template-skill`, label: `${name} template`, value: raise }] : [];
 }
 
 const ability = (

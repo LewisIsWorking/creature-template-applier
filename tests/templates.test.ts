@@ -3,6 +3,7 @@ import { appliedTemplates, buildTemplate, describe as describeTemplate, MODULE_I
 import { readFacts } from '../src/facts.ts';
 import { casterSpellDc, extremeSkill } from '../src/mythic.ts';
 import { halfSpeed } from '../src/wild.ts';
+import { cryptidHp, explosiveEndDice, iridescenceResistance, powerSurgeDice } from '../src/cryptids.ts';
 import { byLevel, dcForLevel, findTemplate, LEVEL_FIELD, TEMPLATES, verdantBurstDice, type CreatureFacts, type Rule } from '../src/templates.ts';
 
 const facts = (over: Partial<CreatureFacts> = {}): CreatureFacts => ({
@@ -15,6 +16,9 @@ const facts = (over: Partial<CreatureFacts> = {}): CreatureFacts => ({
   hasLanguages: true,
   saves: { fortitude: 10, reflex: 12, will: 8 },
   skills: { stealth: 9, athletics: 15, acrobatics: 5, arcana: 6, religion: 11 },
+  traits: ['humanoid'],
+  rarity: 'common',
+  senses: [],
   ...over,
 });
 
@@ -42,6 +46,7 @@ describe('templates', () => {
       'kobold', 'leshy', 'lizardfolk', 'merfolk', 'orc', 'ratfolk', 'tengu', 'tripkee',
       'mythic-ambusher', 'mythic-brute', 'mythic-caster', 'mythic-striker',
       'amphibious', 'frostbound', 'miniature', 'sandbound', 'twinned', 'winged',
+      'experimental-cryptid', 'mutant-cryptid', 'primeval-cryptid', 'rumored-cryptid',
     ]);
     expect(findTemplate('nope')).toBeUndefined();
   });
@@ -225,8 +230,8 @@ describe('elemental templates', () => {
 
   it('every HP modifier has its own slug, so two templates stack', () => {
     const slugs = TEMPLATES.flatMap((t) => keyed(t.build(facts(), {}).rules, 'FlatModifier')).filter((r) => r['selector'] === 'hp').map((r) => r['slug']);
-    expect(slugs).toHaveLength(6);
-    expect(new Set(slugs).size).toBe(6);
+    expect(slugs).toHaveLength(10);
+    expect(new Set(slugs).size).toBe(10);
     expect(keyed(rulesOf('wood'), 'FlatModifier')[0]).toMatchObject({ slug: 'wood-template-hp', label: 'Wood template' });
   });
 });
@@ -498,9 +503,13 @@ describe('readFacts', () => {
     const f = readFacts(
       {
         level: 6,
-        system: { movement: { speeds: { land: { value: 25 }, swim: { value: 40 }, fly: null, burrow: { value: 0 }, climb: { value: 'x' } } } },
+        system: {
+          movement: { speeds: { land: { value: 25 }, swim: { value: 40 }, fly: null, burrow: { value: 0 }, climb: { value: 'x' } } },
+          traits: { value: ['animal', 7], rarity: 'uncommon' },
+        },
         skills: { stealth: { mod: 9 }, athletics: { mod: 14 }, broken: undefined, odd: { mod: Number.NaN } },
         saves: { fortitude: { mod: 12 }, reflex: {}, will: { mod: 7 } },
+        perception: { senses: [{ type: 'darkvision' }, 'scent', null, { type: 3 }] },
       },
       'uuid',
     );
@@ -508,6 +517,9 @@ describe('readFacts', () => {
       level: 6, speeds: { land: 25, swim: 40 }, highestSpeed: 40, canFly: false, highestSkill: 14, slowedUuid: 'uuid', hasLanguages: false,
       saves: { fortitude: 12, reflex: 0, will: 7 },
       skills: { stealth: 9, athletics: 14 },
+      traits: ['animal'],
+      rarity: 'uncommon',
+      senses: ['darkvision', 'scent'],
     });
     expect(readFacts({ system: { details: { languages: { value: ['common'] } } } }, null).hasLanguages).toBe(true);
     expect(readFacts({ system: { details: { languages: { value: [] } } } }, null).hasLanguages).toBe(false);
@@ -519,6 +531,109 @@ describe('readFacts', () => {
       level: 0, speeds: {}, highestSpeed: 0, canFly: false, highestSkill: 0, slowedUuid: null, hasLanguages: false,
       saves: { fortitude: 0, reflex: 0, will: 0 },
       skills: {},
+      traits: [],
+      rarity: 'common',
+      senses: [],
     });
+    // The source's senses are plain slugs; a non-array is ignored.
+    expect(readFacts({ system: { perception: { senses: ['low-light-vision'] } } }, null).senses).toEqual(['low-light-vision']);
+    expect(readFacts({ perception: { senses: 'x' } }, null).senses).toEqual([]);
+  });
+});
+
+describe('cryptid templates', () => {
+  const ids = ['experimental-cryptid', 'mutant-cryptid', 'primeval-cryptid', 'rumored-cryptid'];
+  const built = (id: string, f: CreatureFacts = facts(), choices = {}) => findTemplate(id)!.build(f, choices);
+  const slugs = (id: string, f?: CreatureFacts, choices = {}) => built(id, f, choices).abilities.map((a) => a.slug);
+  const text = (id: string, slug: string, f?: CreatureFacts, choices = {}) => built(id, f, choices).abilities.find((a) => a.slug === slug)!.description;
+  const path = (rules: readonly Rule[], p: string) => keyed(rules, 'ActiveEffectLike').find((r) => r['path'] === p)?.['value'];
+
+  it('tables by level', () => {
+    expect([-1, 1, 2, 4, 5, 19, 20].map(cryptidHp)).toEqual([10, 10, 15, 15, 20, 20, 30]);
+    expect([1, 8, 9, 15, 18].map(powerSurgeDice)).toEqual([1, 1, 2, 3, 4]);
+    expect([0, 1, 2, 3, 4, 5, 21].map(explosiveEndDice)).toEqual([1, 1, 1, 2, 2, 3, 11]);
+    expect([8, 9, 16, 17].map(iridescenceResistance)).toEqual([5, 10, 10, 15]);
+  });
+
+  it('every one: level +1, +1 to all checks and damage, HP by starting level, from Dark Archive', () => {
+    for (const id of ids) {
+      const rules = rulesOf(id);
+      expect(findTemplate(id)!.source, id).toMatch(/^Pathfinder Dark Archive \(Remastered\) pg\. (58|59|60|61)$/);
+      expect(path(rules, 'system.details.level.value'), id).toBe(1);
+      const mods = keyed(rules, 'FlatModifier');
+      expect(mods.find((r) => r['selector'] === 'all'), id).toMatchObject({ value: 1, slug: `${id}-adjustment` });
+      expect(mods.find((r) => r['selector'] === 'damage'), id).toMatchObject({ value: 1 });
+      expect(mods.find((r) => r['selector'] === 'hp'), id).toMatchObject({ value: 15, slug: `${id}-hp` });
+      expect(built(id).byHand[0], id).toContain('only a few times');
+      // DCs written into abilities are immutable, so the +1 to all DCs is not counted twice.
+      for (const a of built(id, facts(), { picks: findTemplate(id)!.picks?.map((p) => p.id) ?? [] }).abilities) {
+        for (const m of a.description.matchAll(/@Check\[[^\]]*\]/g)) expect(m[0]).toContain('immutable:true');
+      }
+    }
+  });
+
+  it('Experimental: experiment trait, darkvision unless it has it, energy by choice, damage by level', () => {
+    const rules = rulesOf('experimental-cryptid');
+    expect(addedTraits(rules)).toEqual(['experiment']);
+    expect(keyed(rules, 'Sense')).toEqual([{ key: 'Sense', selector: 'darkvision' }]);
+    expect(keyed(rulesOf('experimental-cryptid', facts({ senses: ['darkvision'] })), 'Sense')).toEqual([]);
+    expect(slugs('experimental-cryptid')).toEqual(['augmented', 'operational-flaw', 'clobber', 'energy-wave', 'power-surge']);
+    expect(text('experimental-cryptid', 'energy-wave')).toContain('@Damage[5d6[electricity]]');
+    expect(text('experimental-cryptid', 'power-surge', facts(), { energy: 'fire' })).toContain('@Damage[1d6[fire]]');
+    expect(built('experimental-cryptid', facts(), { energy: 'fire' }).abilities.find((a) => a.slug === 'energy-wave')!.traits).toEqual(['fire']);
+    expect(text('experimental-cryptid', 'clobber', facts({ level: 2 }))).toContain('It makes a Strike. On a hit');
+    expect(text('experimental-cryptid', 'clobber')).toContain('one extra weapon damage die');
+    expect(text('experimental-cryptid', 'clobber', facts({ level: 14 }))).toContain('two extra weapon damage dice');
+    expect(text('experimental-cryptid', 'operational-flaw')).toContain('weakness 5 ');
+    expect(built('experimental-cryptid').abilities[0]!.rules![0]).toMatchObject({ selector: 'saving-throw', type: 'circumstance', value: 2 });
+  });
+
+  it('Mutant: rare, Unusual Bane always, the three powers picked (all by default)', () => {
+    expect(path(rulesOf('mutant-cryptid'), 'system.traits.rarity')).toBe('rare');
+    expect(slugs('mutant-cryptid')).toEqual(['unusual-bane', 'explosive-end', 'shifting-iridescence', 'marrowlance']);
+    expect(slugs('mutant-cryptid', facts(), { picks: ['marrowlance'] })).toEqual(['unusual-bane', 'marrowlance']);
+    expect(slugs('mutant-cryptid', facts(), { picks: [] })).toEqual(['unusual-bane']);
+    expect(built('mutant-cryptid', facts(), { picks: [] }).byHand).toHaveLength(2);
+    expect(built('mutant-cryptid').byHand).toHaveLength(4);
+    expect(text('mutant-cryptid', 'unusual-bane')).toContain('5 mental damage');
+    expect(text('mutant-cryptid', 'explosive-end')).toContain('@Damage[3d6]');
+    expect(text('mutant-cryptid', 'shifting-iridescence', facts({ level: 8 }))).toContain('resistance 10 ');
+  });
+
+  it('Primeval: bigger, rarer, beast for an animal, smarter, two picks by default', () => {
+    const rules = rulesOf('primeval-cryptid');
+    expect(keyed(rules, 'CreatureSize')).toEqual([{ key: 'CreatureSize', value: 1 }]);
+    expect(path(rules, 'system.traits.rarity')).toBe('uncommon');
+    expect(path(rulesOf('primeval-cryptid', facts({ rarity: 'uncommon' })), 'system.traits.rarity')).toBe('rare');
+    expect(path(rulesOf('primeval-cryptid', facts({ rarity: 'unique' })), 'system.traits.rarity')).toBeUndefined();
+    expect(path(rules, 'system.abilities.int.mod')).toBe(-3);
+    expect(keyed(rules, 'ActorTraits')).toEqual([]);
+    expect(keyed(rulesOf('primeval-cryptid', facts({ traits: ['animal'] })), 'ActorTraits')).toEqual([{ key: 'ActorTraits', add: ['beast'], remove: ['animal'] }]);
+    expect(slugs('primeval-cryptid')).toEqual(['stench', 'shockwave']);
+    const all = { picks: ['stench', 'broken-arsenal', 'grasp-for-life', 'shockwave'] };
+    expect(slugs('primeval-cryptid', facts(), all)).toEqual(all.picks);
+    expect(text('primeval-cryptid', 'broken-arsenal', facts({ level: 0 }), all)).toContain('@Damage[1[piercing]]');
+    expect(text('primeval-cryptid', 'grasp-for-life', facts({ level: -1 }), all)).toContain('it has 4 Hit Points');
+    expect(text('primeval-cryptid', 'grasp-for-life', facts(), all)).toContain('it has 20 Hit Points');
+    expect(text('primeval-cryptid', 'shockwave', facts({ level: 0 }))).toContain('@Damage[2d6[bludgeoning]]');
+    expect(slugs('primeval-cryptid', facts(), { picks: [] })).toEqual([]);
+  });
+
+  it('Rumored: rare, top Stealth, darkvision or greater, Hybrid Form and Howl optional', () => {
+    const rules = rulesOf('rumored-cryptid', facts({ traits: ['animal'] }));
+    expect(path(rules, 'system.traits.rarity')).toBe('rare');
+    expect(addedTraits(rules)).toEqual(['beast']);
+    expect(keyed(rules, 'FlatModifier').find((r) => r['selector'] === 'stealth')).toMatchObject({ value: 3 });
+    expect(keyed(rules, 'Sense')).toEqual([{ key: 'Sense', selector: 'darkvision' }]);
+    expect(keyed(rulesOf('rumored-cryptid', facts({ senses: ['darkvision'] })), 'Sense')).toEqual([{ key: 'Sense', selector: 'greater-darkvision' }]);
+    expect(keyed(rules, 'BaseSpeed')).toEqual([]);
+    expect(slugs('rumored-cryptid')).toEqual(['creature-obscura', 'shifting-form', 'obscura-vulnerability', 'stalk', 'vanishing-escape']);
+    const picks = { picks: ['hybrid-climb', 'hybrid-swim', 'howl'] };
+    expect(keyed(rulesOf('rumored-cryptid', facts(), picks), 'BaseSpeed')).toEqual([
+      { key: 'BaseSpeed', selector: 'climb', value: 25 },
+      { key: 'BaseSpeed', selector: 'swim', value: 25 },
+    ]);
+    expect(keyed(rulesOf('rumored-cryptid', facts({ speeds: {} }), picks), 'BaseSpeed')).toEqual([]);
+    expect(text('rumored-cryptid', 'howl', facts(), picks)).toContain('@Check[will|dc:22|immutable:true]');
   });
 });

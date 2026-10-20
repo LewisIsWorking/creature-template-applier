@@ -4,7 +4,7 @@
  */
 import { appliedTemplates, buildTemplate, MODULE_ID } from './build.ts';
 import { readFacts } from './facts.ts';
-import { findTemplate, TEMPLATES, type Bypass, type TemplateChoices } from './templates.ts';
+import { findTemplate, TEMPLATES, type Bypass, type Energy, type TemplateChoices } from './templates.ts';
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- Foundry ships no types; this file is the boundary. */
 declare const game: any;
@@ -54,6 +54,14 @@ function dialogContent(actor: any): string {
       return opts ? `<optgroup label="${esc(g)}">${opts}</optgroup>` : '';
     })
     .join('');
+  const picks = TEMPLATES.filter((t) => t.picks && !applied.includes(t.id))
+    .map((t) => {
+      const boxes = t.picks!
+        .map((p) => `<label><input type="checkbox" name="pick.${t.id}.${p.id}"${p.default ? ' checked' : ''}> ${esc(p.name)}</label>`)
+        .join('<br>');
+      return `<fieldset><legend>${esc(t.name)} only</legend>${boxes}</fieldset>`;
+    })
+    .join('');
   const removals = applied
     .map((id) => `<label><input type="checkbox" name="remove.${id}"> Remove ${esc(findTemplate(id)?.name ?? id)}</label>`)
     .join('<br>');
@@ -69,6 +77,10 @@ function dialogContent(actor: any): string {
     <div class="form-group"><label>Bypassed by</label>
       <select name="bypass"><option value="silver">silver</option><option value="cold-iron">cold iron</option><option value="wood">wood</option></select>
       <p class="hint">Vampire only: the material that gets through its resistance.</p></div>
+    <div class="form-group"><label>Energy</label>
+      <select name="energy"><option value="electricity">electricity</option><option value="fire">fire</option></select>
+      <p class="hint">Experimental Cryptid only: the damage of its Energy Wave and Power Surge.</p></div>
+    ${picks}
     ${removals ? `<fieldset><legend>Applied</legend>${removals}</fieldset>` : ''}`;
 }
 
@@ -95,6 +107,8 @@ async function openDialog(actor: any): Promise<void> {
     ...(template.choices.includes('bypass') ? { bypass: String(data['bypass']) as Bypass } : {}),
     ...(template.choices.includes('aquatic') ? { aquatic: data['aquatic'] === true } : {}),
     ...(template.choices.includes('plant') ? { plant: data['plant'] === true } : {}),
+    ...(template.choices.includes('energy') ? { energy: String(data['energy']) as Energy } : {}),
+    ...(template.picks ? { picks: template.picks.filter((p) => data[`pick.${id}.${p.id}`] === true).map((p) => p.id) } : {}),
   };
   try {
     const byHand = await apply(actor, id, choices);

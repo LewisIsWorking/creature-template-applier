@@ -9,10 +9,21 @@ export interface CreatureLike {
   readonly system?: {
     readonly movement?: { readonly speeds?: Record<string, { readonly value?: unknown } | null | undefined> };
     readonly details?: { readonly languages?: { readonly value?: unknown } };
+    readonly traits?: { readonly value?: unknown; readonly rarity?: unknown };
+    readonly perception?: { readonly senses?: unknown };
   };
+  readonly perception?: { readonly senses?: unknown };
   readonly skills?: Record<string, { readonly mod?: unknown } | undefined>;
   readonly saves?: Record<string, { readonly mod?: unknown } | undefined>;
 }
+
+const strings = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : []);
+
+/** Senses come as objects with a type (derived) or as plain slugs. */
+const senseTypes = (v: unknown): string[] =>
+  Array.isArray(v)
+    ? v.map((x: unknown) => (typeof x === 'string' ? x : (x as { type?: unknown } | null)?.type)).filter((x): x is string => typeof x === 'string')
+    : [];
 
 const num = (v: unknown): number | null => (typeof v === 'number' && Number.isFinite(v) ? v : null);
 
@@ -40,5 +51,8 @@ export function readFacts(creature: CreatureLike, slowedUuid: string | null): Cr
     })(),
     saves: { fortitude: save('fortitude'), reflex: save('reflex'), will: save('will') },
     skills: skillMods,
+    traits: strings(creature.system?.traits?.value),
+    rarity: strings([creature.system?.traits?.rarity])[0] ?? 'common',
+    senses: senseTypes(creature.perception?.senses ?? creature.system?.perception?.senses),
   };
 }
