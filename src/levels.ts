@@ -12,3 +12,11 @@ export const STEP_3_5_10_15: readonly Bracket[] = [
   { start: 9, end: 13, value: 10 },
   { start: 14, value: 15 },
 ];
+
+/** Moderate DCs by level, -1 to 25 (Core Rulebook, DCs by Level). */
+const DC_BY_LEVEL = [13, 14, 15, 16, 18, 19, 20, 22, 23, 24, 26, 27, 28, 30, 31, 32, 34, 35, 36, 38, 39, 40, 42, 44, 46, 48, 50];
+
+export function dcForLevel(level: number): number {
+  const i = Math.min(Math.max(Math.trunc(level), -1), 25) + 1;
+  return DC_BY_LEVEL[i] as number;
+}

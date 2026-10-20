@@ -46,6 +46,11 @@ attack. Those are listed on the template's effect under **Still to do by hand**.
   123): Amphibious, Frostbound, Miniature, Sandbound, Twinned and Winged. Speeds the creature lacks
   are worked out from the Speeds it has when the template goes on.
 
+- **Cryptid**, the four cryptids from *Pathfinder Dark Archive (Remastered)* (pages 58 to 61):
+  Experimental, Mutant, Primeval and Rumored. Each raises the level by 1 and every check, DC and
+  damage roll by 1, adds Hit Points, and grants its abilities. The apply dialog lets you pick the
+  optional abilities (Mutant, Primeval and Rumored) and the Experimental cryptid's energy.
+
 ## Install
 
 Manifest URL:

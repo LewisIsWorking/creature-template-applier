@@ -8,7 +8,8 @@
  */
 
 import { MYTHIC } from './mythic.ts';
-import { byLevel, STEP_3_5_10_15 } from './levels.ts';
+import { byLevel, dcForLevel, STEP_3_5_10_15 } from './levels.ts';
+import { CRYPTIDS } from './cryptids.ts';
 import { WILD } from './wild.ts';
 
 /** A PF2e rule element, as stored on an item. */
@@ -51,6 +52,12 @@ export interface CreatureFacts {
   readonly saves: Readonly<Record<'fortitude' | 'reflex' | 'will', number>>;
   /** Skill modifiers by slug, for the mythic templates' extreme skills. */
   readonly skills: Readonly<Record<string, number>>;
+  /** Its traits, for the cryptids' animal to beast. */
+  readonly traits: readonly string[];
+  /** common, uncommon, rare or unique. */
+  readonly rarity: string;
+  /** Sense types it has, for a cryptid's darkvision or greater darkvision. */
+  readonly senses: readonly string[];
 }
 
 export type Bypass = 'cold-iron' | 'silver' | 'wood';
@@ -63,9 +70,22 @@ export interface TemplateChoices {
   readonly plant?: boolean;
   /** Vampire only: the material that bypasses its physical resistance. */
   readonly bypass?: Bypass;
+  /** Experimental cryptid only: its Energy Wave and Power Surge damage type. */
+  readonly energy?: Energy;
+  /** The optional abilities picked, for a template that offers picks; its defaults when left out. */
+  readonly picks?: readonly string[];
 }
 
-export type Choice = 'mindless' | 'bypass' | 'aquatic' | 'plant';
+export type Energy = 'electricity' | 'fire';
+
+export type Choice = 'mindless' | 'bypass' | 'aquatic' | 'plant' | 'energy';
+
+/** An optional ability a template lets the GM pick. */
+export interface Pick {
+  readonly id: string;
+  readonly name: string;
+  readonly default: boolean;
+}
 
 export interface TemplateResult {
   readonly rules: readonly Rule[];
@@ -81,19 +101,14 @@ export interface CreatureTemplate {
   readonly source: string;
   /** Which choices the apply dialog offers for this template. */
   readonly choices: readonly Choice[];
+  /** Optional abilities the GM picks from, if the template offers any. */
+  readonly picks?: readonly Pick[];
   readonly summary: string;
   build(facts: CreatureFacts, choices: TemplateChoices): TemplateResult;
 }
 
-export { byLevel, LEVEL_FIELD, STEP_3_5_10_15 } from './levels.ts';
+export { byLevel, dcForLevel, LEVEL_FIELD, STEP_3_5_10_15 } from './levels.ts';
 
-/** Moderate DCs by level, -1 to 25 (Core Rulebook, DCs by Level). */
-const DC_BY_LEVEL = [13, 14, 15, 16, 18, 19, 20, 22, 23, 24, 26, 27, 28, 30, 31, 32, 34, 35, 36, 38, 39, 40, 42, 44, 46, 48, 50];
-
-export function dcForLevel(level: number): number {
-  const i = Math.min(Math.max(Math.trunc(level), -1), 25) + 1;
-  return DC_BY_LEVEL[i] as number;
-}
 
 const BASE_IMMUNITIES = ['death-effects', 'disease', 'paralyzed', 'poison', 'unconscious'] as const;
 
@@ -798,6 +813,7 @@ export const TEMPLATES: readonly CreatureTemplate[] = [
   ...ANCESTRY,
   ...MYTHIC,
   ...WILD,
+  ...CRYPTIDS,
 ];
 
 export function findTemplate(id: string): CreatureTemplate | undefined {

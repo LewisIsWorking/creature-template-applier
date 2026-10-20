@@ -21,6 +21,9 @@ const atLevel = (table: readonly number[], level: number): number => table[Math.
 
 export const extremeSkill = (level: number): number => atLevel(EXTREME_SKILL, level);
 
+/** GM Core's high spell DC, which creature abilities use as their high DC. */
+export const highDc = (level: number): number => atLevel(HIGH_SPELL_DC, level);
+
 /** A mythic caster's spell DC: high, or extreme from 11th level. */
 export const casterSpellDc = (level: number): number => atLevel(level >= 11 ? EXTREME_SPELL_DC : HIGH_SPELL_DC, level);
 

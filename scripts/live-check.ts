@@ -78,6 +78,10 @@ interface Snapshot {
   items: string[];
   slowed: boolean;
   size: string;
+  level: number;
+  ac: number;
+  perception: number;
+  rarity: string;
   skills: Record<string, number>;
   /** Traits and languages the system does not know, which would mean a wrong slug. */
   unknown: string[];
@@ -104,6 +108,10 @@ const snapshot = (page: Page, id: string): Promise<Snapshot> =>
       items: a.items.map((i: any) => i.name).sort(),
       slowed: !!a.hasCondition?.('slowed'),
       size: a.size,
+      level: a.level,
+      ac: attr.ac.value,
+      perception: a.perception?.mod,
+      rarity: a.rarity,
       skills: Object.fromEntries(['acrobatics', 'athletics', 'stealth'].map((s) => [s, a.skills[s]?.mod])),
       unknown: [
         ...[...a.system.traits.value].filter((t: string) => !(t in g.CONFIG.PF2E.creatureTraits)),
@@ -266,6 +274,26 @@ const CASES: [string, Record<string, unknown>, Expect][] = [
     ['burrow 10', s.speeds['burrow'] === 10, JSON.stringify(s.speeds)],
   ]],
   ['twinned', {}, (s) => [['three abilities', has(s.items, 'Independent Brains', 'Gnaw Free', 'Reactive Strike'), s.items.join()]]],
+  ['experimental-cryptid', {}, (s) => [
+    ['level 4 -> 5, HP 60 -> 75', s.level === 5 && s.hpMax === 75, `${s.level} ${s.hpMax}`],
+    ['AC, saves and Perception +1', s.ac === base.ac + 1 && s.perception === base.perception + 1 && s.saves.every((v, i) => v === base.saves[i]! + 1), JSON.stringify([s.ac, s.perception, s.saves])],
+    ['trait experiment, darkvision', has(s.traits, 'experiment') && s.senses.includes('darkvision'), s.traits.join()],
+    ['Energy Wave and Power Surge', has(s.items, 'Energy Wave', 'Power Surge'), s.items.join()],
+  ]],
+  ['mutant-cryptid', {}, (s) => [
+    ['rare', s.rarity === 'rare', s.rarity],
+    ['Unusual Bane and all three powers', has(s.items, 'Unusual Bane', 'Explosive End', 'Shifting Iridescence', 'Marrowlance'), s.items.join()],
+  ]],
+  ['primeval-cryptid', { picks: ['grasp-for-life', 'broken-arsenal'] }, (s) => [
+    ['Large, uncommon', s.size === 'lg' && s.rarity === 'uncommon', `${s.size} ${s.rarity}`],
+    ['the two picked', has(s.items, 'Grasp for Life', 'Broken Arsenal') && !s.items.includes('Stench'), s.items.join()],
+  ]],
+  ['rumored-cryptid', { picks: ['hybrid-climb', 'howl'] }, (s) => [
+    ['rare, darkvision', s.rarity === 'rare' && s.senses.includes('darkvision'), `${s.rarity} ${s.senses.join()}`],
+    ['Stealth +1', s.skills['stealth'] === base.skills['stealth']! + 1, JSON.stringify(s.skills)],
+    ['climb 25', s.speeds['climb'] === 25, JSON.stringify(s.speeds)],
+    ['Stalk and Howl', has(s.items, 'Stalk', 'Vanishing Escape', 'Howl'), s.items.join()],
+  ]],
   ['winged', {}, (s) => [['fly 25', s.speeds['fly'] === 25, JSON.stringify(s.speeds)], ['Dropping Dodge', s.items.includes('Dropping Dodge')]]],
   ['zombie', {}, (s) => [
     ['HP 60 -> 80', s.hpMax === 80, String(s.hpMax)],
