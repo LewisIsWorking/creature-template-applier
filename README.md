@@ -42,6 +42,10 @@ attack. Those are listed on the template's effect under **Still to do by hand**.
   169): Mythic Ambusher, Brute, Caster and Striker, each with the basic mythic abilities for its
   level. Mythic resilience goes to the creature's highest allowed saves first, as the book advises.
 
+- **Adaptation**, the six creature adaptations from *Pathfinder Howl of the Wild* (pages 122 and
+  123): Amphibious, Frostbound, Miniature, Sandbound, Twinned and Winged. Speeds the creature lacks
+  are worked out from the Speeds it has when the template goes on.
+
 ## Install
 
 Manifest URL:

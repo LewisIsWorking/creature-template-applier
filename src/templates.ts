@@ -8,6 +8,8 @@
  */
 
 import { MYTHIC } from './mythic.ts';
+import { byLevel, STEP_3_5_10_15 } from './levels.ts';
+import { WILD } from './wild.ts';
 
 /** A PF2e rule element, as stored on an item. */
 export type Rule = Record<string, unknown> & { key: string };
@@ -36,6 +38,8 @@ export interface CreatureFacts {
   readonly level: number;
   /** The creature's highest Speed of any kind, in feet. */
   readonly highestSpeed: number;
+  /** Each Speed it has, in feet, by type (land, swim, burrow...). */
+  readonly speeds: Readonly<Record<string, number>>;
   readonly canFly: boolean;
   /** The creature's highest skill modifier, for Shadow's Stealth. */
   readonly highestSkill: number;
@@ -81,17 +85,7 @@ export interface CreatureTemplate {
   build(facts: CreatureFacts, choices: TemplateChoices): TemplateResult;
 }
 
-export const LEVEL_FIELD = 'actor|system.details.level.value';
-
-export const byLevel = (brackets: readonly Bracket[]) => ({ field: LEVEL_FIELD, brackets });
-
-/** The four-step table Book of the Dead uses for many weaknesses: 3, 5, 10, 15. */
-const STEP_3_5_10_15: readonly Bracket[] = [
-  { end: 3, value: 3 },
-  { start: 4, end: 8, value: 5 },
-  { start: 9, end: 13, value: 10 },
-  { start: 14, value: 15 },
-];
+export { byLevel, LEVEL_FIELD, STEP_3_5_10_15 } from './levels.ts';
 
 /** Moderate DCs by level, -1 to 25 (Core Rulebook, DCs by Level). */
 const DC_BY_LEVEL = [13, 14, 15, 16, 18, 19, 20, 22, 23, 24, 26, 27, 28, 30, 31, 32, 34, 35, 36, 38, 39, 40, 42, 44, 46, 48, 50];
@@ -803,6 +797,7 @@ export const TEMPLATES: readonly CreatureTemplate[] = [
   ...ELEMENTAL,
   ...ANCESTRY,
   ...MYTHIC,
+  ...WILD,
 ];
 
 export function findTemplate(id: string): CreatureTemplate | undefined {
