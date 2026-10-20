@@ -307,7 +307,7 @@ export function verdantBurstDice(level: number): string {
 const landSpeed = (mode: 'override' | 'downgrade', value: number): Rule => ({
   key: 'ActiveEffectLike',
   mode,
-  path: 'system.movement.speeds.land.value',
+  path: 'system.movement.speeds.land.base',
   value,
 });
 

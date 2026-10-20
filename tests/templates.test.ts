@@ -259,10 +259,10 @@ describe('ancestry templates', () => {
     expect(senses(rulesOf('elf'))).toEqual(['low-light-vision']);
     expect(senses(rulesOf('halfling'))).toEqual([]);
     expect(senses(rulesOf('lizardfolk'))).toEqual([]);
-    expect(keyed(rulesOf('dwarf'), 'ActiveEffectLike').find((r) => r['path'] === 'system.movement.speeds.land.value'))
+    expect(keyed(rulesOf('dwarf'), 'ActiveEffectLike').find((r) => r['path'] === 'system.movement.speeds.land.base'))
       .toMatchObject({ mode: 'downgrade', value: 20 });
     const merfolk = rulesOf('merfolk');
-    expect(keyed(merfolk, 'ActiveEffectLike').find((r) => r['path'] === 'system.movement.speeds.land.value')).toMatchObject({ mode: 'override', value: 5 });
+    expect(keyed(merfolk, 'ActiveEffectLike').find((r) => r['path'] === 'system.movement.speeds.land.base')).toMatchObject({ mode: 'override', value: 5 });
     expect(keyed(merfolk, 'BaseSpeed')).toEqual([{ key: 'BaseSpeed', selector: 'swim', value: 25 }]);
     expect(addedTraits(merfolk)).toEqual(['merfolk', 'amphibious']);
   });
