@@ -250,6 +250,23 @@ const CASES: [string, Record<string, unknown>, Expect][] = [
     ['Acrobatics extreme (+15)', s.skills['acrobatics'] === 15, JSON.stringify(s.skills)],
     ['Deadly Striker and Unimpeded', has(s.items, 'Deadly Striker', 'Unimpeded'), s.items.join()],
   ]],
+  ['amphibious', {}, (s) => [
+    ['trait amphibious', has(s.traits, 'amphibious'), s.traits.join()],
+    ['low-light vision', s.senses.includes('low-light-vision'), s.senses.join()],
+    ['swim 15 (half of 25, at least 15)', s.speeds['swim'] === 15, JSON.stringify(s.speeds)],
+    ['Drag Along', s.items.includes('Drag Along')],
+  ]],
+  ['frostbound', {}, (s) => [
+    ['resist cold 5, weak 5 to fire', s.resistances['cold']?.value === 5 && s.weaknesses['fire'] === 5, JSON.stringify([s.resistances, s.weaknesses])],
+    ['Snow Spray', s.items.includes('Snow Spray'), s.items.join()],
+  ]],
+  ['miniature', {}, (s) => [['Tiny', s.size === 'tiny', s.size], ['Scamper Underfoot', s.items.includes('Scamper Underfoot')]]],
+  ['sandbound', {}, (s) => [
+    ['resist fire 5, weak 5 to cold', s.resistances['fire']?.value === 5 && s.weaknesses['cold'] === 5, JSON.stringify([s.resistances, s.weaknesses])],
+    ['burrow 10', s.speeds['burrow'] === 10, JSON.stringify(s.speeds)],
+  ]],
+  ['twinned', {}, (s) => [['three abilities', has(s.items, 'Independent Brains', 'Gnaw Free', 'Reactive Strike'), s.items.join()]]],
+  ['winged', {}, (s) => [['fly 25', s.speeds['fly'] === 25, JSON.stringify(s.speeds)], ['Dropping Dodge', s.items.includes('Dropping Dodge')]]],
   ['zombie', {}, (s) => [
     ['HP 60 -> 80', s.hpMax === 80, String(s.hpMax)],
     ['weak 5 to vitality and slashing', s.weaknesses['vitality'] === 5 && s.weaknesses['slashing'] === 5, JSON.stringify(s.weaknesses)],

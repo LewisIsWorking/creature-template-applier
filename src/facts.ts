@@ -29,6 +29,7 @@ export function readFacts(creature: CreatureLike, slowedUuid: string | null): Cr
   const save = (s: string) => num(creature.saves?.[s]?.mod) ?? 0;
   return {
     level: num(creature.level) ?? 0,
+    speeds: Object.fromEntries(speeds.map((s) => [s.type, s.value])),
     highestSpeed: speeds.reduce((max, s) => Math.max(max, s.value), 0),
     canFly: speeds.some((s) => s.type === 'fly'),
     highestSkill: skills.length > 0 ? Math.max(...skills) : 0,

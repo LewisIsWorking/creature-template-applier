@@ -2,11 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { appliedTemplates, buildTemplate, describe as describeTemplate, MODULE_ID } from '../src/build.ts';
 import { readFacts } from '../src/facts.ts';
 import { casterSpellDc, extremeSkill } from '../src/mythic.ts';
+import { halfSpeed } from '../src/wild.ts';
 import { byLevel, dcForLevel, findTemplate, LEVEL_FIELD, TEMPLATES, verdantBurstDice, type CreatureFacts, type Rule } from '../src/templates.ts';
 
 const facts = (over: Partial<CreatureFacts> = {}): CreatureFacts => ({
   level: 4,
   highestSpeed: 25,
+  speeds: { land: 25 },
   canFly: false,
   highestSkill: 12,
   slowedUuid: 'Compendium.pf2e.conditionitems.Item.slowed',
@@ -39,6 +41,7 @@ describe('templates', () => {
       'athamaru', 'catfolk', 'dwarf', 'elf', 'gnome', 'goblin', 'halfling', 'hobgoblin', 'kholo',
       'kobold', 'leshy', 'lizardfolk', 'merfolk', 'orc', 'ratfolk', 'tengu', 'tripkee',
       'mythic-ambusher', 'mythic-brute', 'mythic-caster', 'mythic-striker',
+      'amphibious', 'frostbound', 'miniature', 'sandbound', 'twinned', 'winged',
     ]);
     expect(findTemplate('nope')).toBeUndefined();
   });
@@ -364,6 +367,80 @@ describe('mythic templates', () => {
   });
 });
 
+describe('adaptation templates', () => {
+  const ids = ['amphibious', 'frostbound', 'miniature', 'sandbound', 'twinned', 'winged'];
+  const slugs = (id: string) => findTemplate(id)!.build(facts(), {}).abilities.map((a) => a.slug);
+  const speedOf = (rules: readonly Rule[], selector: string) => keyed(rules, 'BaseSpeed').find((r) => r['selector'] === selector)?.['value'];
+  const skillRaise = (id: string, f: CreatureFacts = facts()) => keyed(rulesOf(id, f), 'FlatModifier')[0];
+
+  it('all six, from Howl of the Wild', () => {
+    for (const id of ids) expect(findTemplate(id)!.source, id).toMatch(/^Pathfinder Howl of the Wild pg\. 12[23]$/);
+    expect(halfSpeed(25)).toBe(10);
+    expect(halfSpeed(40)).toBe(20);
+    expect(halfSpeed(35)).toBe(15);
+  });
+
+  it('Amphibious: trait, vision, a swim or land Speed if missing, top Athletics, Drag Along', () => {
+    const rules = rulesOf('amphibious', facts({ speeds: { land: 40 }, highestSkill: 18 }));
+    expect(keyed(rules, 'ActorTraits')).toEqual([{ key: 'ActorTraits', add: ['amphibious'], remove: ['aquatic'] }]);
+    expect(keyed(rules, 'Sense')).toEqual([{ key: 'Sense', selector: 'low-light-vision' }]);
+    expect(speedOf(rules, 'swim')).toBe(20);
+    expect(speedOf(rulesOf('amphibious', facts({ speeds: { land: 20 } })), 'swim')).toBe(15);
+    expect(speedOf(rulesOf('amphibious', facts({ speeds: { land: 25, swim: 30 } })), 'swim')).toBeUndefined();
+    const fish = rulesOf('amphibious', facts({ speeds: { swim: 50 } }));
+    expect(keyed(fish, 'ActiveEffectLike')).toEqual([
+      { key: 'ActiveEffectLike', mode: 'upgrade', path: 'system.movement.speeds.land.base', value: 25 },
+    ]);
+    expect(keyed(rules, 'ActiveEffectLike')).toEqual([]);
+    expect(skillRaise('amphibious', facts({ highestSkill: 18 }))).toMatchObject({ selector: 'athletics', value: 3, slug: 'amphibious-template-skill' });
+    expect(skillRaise('amphibious', facts({ highestSkill: 15 }))).toBeUndefined();
+    expect(slugs('amphibious')).toEqual(['drag-along']);
+  });
+
+  it('Frostbound and Sandbound: opposite resistance and weakness 3/5/10/15', () => {
+    for (const [id, resist, weak] of [['frostbound', 'cold', 'fire'], ['sandbound', 'fire', 'cold']] as const) {
+      const rules = rulesOf(id);
+      const r = keyed(rules, 'Resistance');
+      const w = keyed(rules, 'Weakness');
+      expect(r.map((x) => x['type'])).toEqual([resist]);
+      expect(w.map((x) => x['type'])).toEqual([weak]);
+      expect([3, 4, 9, 14].map((l) => resolve(r[0]!['value'], l))).toEqual([3, 5, 10, 15]);
+      expect([3, 4, 9, 14].map((l) => resolve(w[0]!['value'], l))).toEqual([3, 5, 10, 15]);
+    }
+    expect(slugs('frostbound')).toEqual(['freezing-adaptation', 'winter-senses', 'arctic-steps', 'snow-spray']);
+    expect(slugs('sandbound')).toEqual(['efficient-metabolism', 'scorching-adaptation', 'desert-steps', 'sand-burst']);
+  });
+
+  it('Sandbound burrows at half its fastest Speed unless it already burrows', () => {
+    expect(speedOf(rulesOf('sandbound', facts({ highestSpeed: 50 })), 'burrow')).toBe(25);
+    expect(speedOf(rulesOf('sandbound', facts({ speeds: { burrow: 10 } })), 'burrow')).toBeUndefined();
+    expect(speedOf(rulesOf('sandbound', facts({ highestSpeed: 0 })), 'burrow')).toBeUndefined();
+  });
+
+  it('Miniature: Tiny, top Stealth, reach by hand', () => {
+    const t = findTemplate('miniature')!.build(facts(), {});
+    expect(keyed(t.rules, 'CreatureSize')).toEqual([{ key: 'CreatureSize', value: 'tiny' }]);
+    expect(skillRaise('miniature')).toMatchObject({ selector: 'stealth', value: 3 });
+    expect(t.byHand[0]).toContain('0 feet');
+    expect(slugs('miniature')).toEqual(['scamper-underfoot']);
+    expect(t.abilities[0]).toMatchObject({ actionType: 'action', actions: 2 });
+  });
+
+  it('Winged: flies at its highest Speed unless it flies already, top Acrobatics', () => {
+    expect(speedOf(rulesOf('winged', facts({ highestSpeed: 35 })), 'fly')).toBe(35);
+    expect(speedOf(rulesOf('winged', facts({ canFly: true })), 'fly')).toBeUndefined();
+    expect(skillRaise('winged')).toMatchObject({ selector: 'acrobatics', value: 7 });
+    expect(findTemplate('winged')!.build(facts(), {}).abilities[0]).toMatchObject({ slug: 'dropping-dodge', actionType: 'reaction' });
+  });
+
+  it('Twinned: no rules, three abilities, the second head by hand', () => {
+    const t = findTemplate('twinned')!.build(facts(), {});
+    expect(t.rules).toEqual([]);
+    expect(slugs('twinned')).toEqual(['independent-brains', 'gnaw-free', 'reactive-strike']);
+    expect(t.byHand).toHaveLength(2);
+  });
+});
+
 describe('build', () => {
   it('makes one effect with the rules and one action per ability, all flagged', () => {
     const built = buildTemplate(findTemplate('ghoul')!, facts(), {});
@@ -423,7 +500,7 @@ describe('readFacts', () => {
       'uuid',
     );
     expect(f).toEqual({
-      level: 6, highestSpeed: 40, canFly: false, highestSkill: 14, slowedUuid: 'uuid', hasLanguages: false,
+      level: 6, speeds: { land: 25, swim: 40 }, highestSpeed: 40, canFly: false, highestSkill: 14, slowedUuid: 'uuid', hasLanguages: false,
       saves: { fortitude: 12, reflex: 0, will: 7 },
       skills: { stealth: 9, athletics: 14 },
     });
@@ -434,7 +511,7 @@ describe('readFacts', () => {
 
   it('defaults when the creature has nothing to read', () => {
     expect(readFacts({}, null)).toEqual({
-      level: 0, highestSpeed: 0, canFly: false, highestSkill: 0, slowedUuid: null, hasLanguages: false,
+      level: 0, speeds: {}, highestSpeed: 0, canFly: false, highestSkill: 0, slowedUuid: null, hasLanguages: false,
       saves: { fortitude: 0, reflex: 0, will: 0 },
       skills: {},
     });
