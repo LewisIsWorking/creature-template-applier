@@ -112,7 +112,7 @@ const snapshot = (page: Page, id: string): Promise<Snapshot> =>
       ac: attr.ac.value,
       perception: a.perception?.mod,
       rarity: a.rarity,
-      skills: Object.fromEntries(['acrobatics', 'athletics', 'stealth'].map((s) => [s, a.skills[s]?.mod])),
+      skills: Object.fromEntries(['acrobatics', 'athletics', 'deception', 'diplomacy', 'society', 'stealth'].map((s) => [s, a.skills[s]?.mod])),
       unknown: [
         ...[...a.system.traits.value].filter((t: string) => !(t in g.CONFIG.PF2E.creatureTraits)),
         ...[...(a.system.details.languages?.value ?? [])].filter((l: string) => !(l in g.CONFIG.PF2E.languages)),
