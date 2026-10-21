@@ -3,6 +3,7 @@ import { appliedTemplates, buildTemplate, describe as describeTemplate, MODULE_I
 import { readFacts } from '../src/facts.ts';
 import { casterSpellDc, extremeSkill } from '../src/mythic.ts';
 import { halfSpeed } from '../src/wild.ts';
+import { highSkill, moderateSkill, skillSavvyFeats } from '../src/npc.ts';
 import { cryptidHp, explosiveEndDice, iridescenceResistance, powerSurgeDice } from '../src/cryptids.ts';
 import { byLevel, dcForLevel, findTemplate, LEVEL_FIELD, TEMPLATES, verdantBurstDice, type CreatureFacts, type Rule } from '../src/templates.ts';
 
@@ -16,6 +17,7 @@ const facts = (over: Partial<CreatureFacts> = {}): CreatureFacts => ({
   hasLanguages: true,
   saves: { fortitude: 10, reflex: 12, will: 8 },
   skills: { stealth: 9, athletics: 15, acrobatics: 5, arcana: 6, religion: 11 },
+  trained: ['stealth', 'athletics'],
   traits: ['humanoid'],
   rarity: 'common',
   senses: [],
@@ -47,6 +49,7 @@ describe('templates', () => {
       'mythic-ambusher', 'mythic-brute', 'mythic-caster', 'mythic-striker',
       'amphibious', 'frostbound', 'miniature', 'sandbound', 'twinned', 'winged',
       'experimental-cryptid', 'mutant-cryptid', 'primeval-cryptid', 'rumored-cryptid',
+      'corrupt', 'guerrilla', 'retired', 'union-organizer', 'secret-society-member', 'broodpiercer',
     ]);
     expect(findTemplate('nope')).toBeUndefined();
   });
@@ -507,7 +510,7 @@ describe('readFacts', () => {
           movement: { speeds: { land: { value: 25 }, swim: { value: 40 }, fly: null, burrow: { value: 0 }, climb: { value: 'x' } } },
           traits: { value: ['animal', 7], rarity: 'uncommon' },
         },
-        skills: { stealth: { mod: 9 }, athletics: { mod: 14 }, broken: undefined, odd: { mod: Number.NaN } },
+        skills: { stealth: { mod: 9, proficient: true }, athletics: { mod: 14, proficient: false }, broken: undefined, odd: { mod: Number.NaN } },
         saves: { fortitude: { mod: 12 }, reflex: {}, will: { mod: 7 } },
         perception: { senses: [{ type: 'darkvision' }, 'scent', null, { type: 3 }] },
       },
@@ -517,6 +520,7 @@ describe('readFacts', () => {
       level: 6, speeds: { land: 25, swim: 40 }, highestSpeed: 40, canFly: false, highestSkill: 14, slowedUuid: 'uuid', hasLanguages: false,
       saves: { fortitude: 12, reflex: 0, will: 7 },
       skills: { stealth: 9, athletics: 14 },
+      trained: ['stealth'],
       traits: ['animal'],
       rarity: 'uncommon',
       senses: ['darkvision', 'scent'],
@@ -531,6 +535,7 @@ describe('readFacts', () => {
       level: 0, speeds: {}, highestSpeed: 0, canFly: false, highestSkill: 0, slowedUuid: null, hasLanguages: false,
       saves: { fortitude: 0, reflex: 0, will: 0 },
       skills: {},
+      trained: [],
       traits: [],
       rarity: 'common',
       senses: [],
@@ -635,5 +640,108 @@ describe('cryptid templates', () => {
     ]);
     expect(keyed(rulesOf('rumored-cryptid', facts({ speeds: {} }), picks), 'BaseSpeed')).toEqual([]);
     expect(text('rumored-cryptid', 'howl', facts(), picks)).toContain('@Check[will|dc:22|immutable:true]');
+  });
+});
+
+describe('NPC and parasite templates', () => {
+  const built = (id: string, f: CreatureFacts = facts(), choices = {}) => findTemplate(id)!.build(f, choices);
+  const slugs = (id: string, f?: CreatureFacts, choices = {}) => built(id, f, choices).abilities.map((a) => a.slug);
+  const text = (id: string, slug: string, f?: CreatureFacts, choices = {}) => built(id, f, choices).abilities.find((a) => a.slug === slug)!.description;
+  const mod = (rules: readonly Rule[], selector: string) => keyed(rules, 'FlatModifier').find((r) => r['selector'] === selector)?.['value'];
+  const ALL_SOCIETY = ['get-out-of-jail', 'not-today', 'prepared-diversion', 'prepared-trap', 'skill-savvy', 'tag-team'];
+
+  it('skill tables by level, clamped to -1 and 24', () => {
+    expect([-5, -1, 4, 5, 23, 24, 30].map(highSkill)).toEqual([5, 5, 12, 13, 43, 45, 45]);
+    expect([-5, 4, 5, 24, 30].map(moderateSkill)).toEqual([4, 10, 12, 40, 40]);
+    expect(skillSavvyFeats(1)).not.toContain('Glad-Hand');
+    expect(skillSavvyFeats(2)).toContain('Glad-Hand');
+    expect(skillSavvyFeats(6)).not.toContain('Shameless Request');
+    expect(skillSavvyFeats(7)).toContain('Shameless Request, Slippery Secrets');
+  });
+
+  it('Corrupt: high Deception and Underworld Lore, Will -1, Official Bully', () => {
+    const r = built('corrupt');
+    expect(findTemplate('corrupt')!.source).toBe('Pathfinder NPC Core pg. 122');
+    expect(mod(r.rules, 'will')).toBe(-1);
+    expect(r.byHand).toEqual(expect.arrayContaining(['Add Deception at +12.', 'Add Underworld Lore at +12.']));
+    expect(slugs('corrupt')).toEqual(['official-bully']);
+    const listed = facts({ skills: { deception: 5, 'underworld-lore': 20 } });
+    expect(mod(rulesOf('corrupt', listed), 'deception')).toBe(7);
+    expect(mod(rulesOf('corrupt', listed), 'underworld-lore')).toBeUndefined();
+    expect(built('corrupt', listed).byHand).toHaveLength(1);
+  });
+
+  it('Guerrilla: high Stealth, Athletics -2 only if trained, Strike damage -2, Sneak Attack, Pounce', () => {
+    const rules = rulesOf('guerrilla');
+    expect(mod(rules, 'stealth')).toBe(3);
+    expect(mod(rules, 'athletics')).toBe(-2);
+    expect(mod(rules, 'strike-damage')).toBe(-2);
+    expect(mod(rulesOf('guerrilla', facts({ trained: [] })), 'athletics')).toBeUndefined();
+    expect(slugs('guerrilla')).toEqual(['sneak-attack', 'pounce']);
+    expect(built('guerrilla').abilities[0]!.rules![0]).toMatchObject({
+      key: 'DamageDice',
+      dieSize: 'd6',
+      category: 'precision',
+      predicate: ['target:condition:off-guard'],
+    });
+    expect(built('guerrilla', facts({ skills: {} })).byHand).toEqual(['Add Stealth at +12.']);
+  });
+
+  it('Retired: level -1, Rusty on a toggle, Still Got It!, the rest by hand', () => {
+    const r = built('retired');
+    expect(keyed(r.rules, 'ActiveEffectLike')).toEqual([{ key: 'ActiveEffectLike', mode: 'add', path: 'system.details.level.value', value: -1 }]);
+    const rusty = r.abilities[0]!.rules!;
+    expect(rusty[0]).toMatchObject({ key: 'RollOption', option: 'retired-rusty', toggleable: true, value: true });
+    expect(rusty[1]).toMatchObject({ selector: 'all', type: 'status', value: -1, predicate: ['retired-rusty'] });
+    expect(rusty[2]).toMatchObject({ key: 'RollTwice', selector: 'initiative', keep: 'lower' });
+    expect(text('retired', 'still-got-it')).toContain('gains 3 temporary Hit Points');
+    expect(text('retired', 'still-got-it', facts({ level: 0 }))).toContain('gains 1 temporary Hit Points');
+    expect(r.byHand[0]).toContain('at +10.');
+  });
+
+  it('Union Organizer: Diplomacy and Labor Lore at its best skill, Solidarity aura', () => {
+    expect(built('union-organizer').byHand).toEqual(['Add Diplomacy at +12.', 'Add Labor Lore at +12.']);
+    const rules = rulesOf('union-organizer', facts({ skills: { diplomacy: 4, 'labor-lore': 12 } }));
+    expect(mod(rules, 'diplomacy')).toBe(8);
+    expect(mod(rules, 'labor-lore')).toBeUndefined();
+    expect(built('union-organizer').abilities[0]).toMatchObject({ slug: 'solidarity', traits: ['aura'] });
+  });
+
+  it('Secret Society Member: level +1 and +1 to all, skills for the new level, society abilities by pick', () => {
+    const f = facts({ skills: { deception: 3, society: 2, diplomacy: 1, intimidation: 20 } });
+    const rules = rulesOf('secret-society-member', f);
+    expect(mod(rules, 'all')).toBe(1);
+    expect(mod(rules, 'hp')).toBe(15);
+    // High 13 and moderate 12 at the new level 5, less the +1 already on every skill.
+    expect([mod(rules, 'deception'), mod(rules, 'society'), mod(rules, 'diplomacy'), mod(rules, 'intimidation')]).toEqual([9, 10, 11, undefined]);
+    const intim = rulesOf('secret-society-member', f, { social: 'intimidation' });
+    expect([mod(intim, 'diplomacy'), mod(intim, 'intimidation')]).toEqual([10, undefined]);
+    expect(slugs('secret-society-member')).toEqual(['connected', 'shibboleth', 'not-today', 'prepared-diversion', 'tag-team']);
+    const all = { picks: ALL_SOCIETY };
+    expect(slugs('secret-society-member', f, all)).toEqual([
+      'connected',
+      'shibboleth',
+      'get-out-of-jail',
+      'not-today',
+      'prepared-diversion',
+      'prepared-trap',
+      'tag-team',
+    ]);
+    expect(slugs('secret-society-member', f, { picks: [] })).toEqual(['connected', 'shibboleth']);
+    expect(text('secret-society-member', 'prepared-trap', f, all)).toContain('snare of level 3 or lower');
+    expect(text('secret-society-member', 'prepared-trap', facts({ level: 0 }), all)).toContain('snare of level 1 or lower');
+    expect(text('secret-society-member', 'not-today', f)).toContain('gains 5 temporary Hit Points');
+    expect(built('secret-society-member', f, all).byHand.at(-1)).toContain('Skill Savvy');
+    expect(built('secret-society-member', f).byHand).toEqual([expect.stringContaining('only a few times')]);
+  });
+
+  it('Broodpiercer: level +1 and +1 to all, smarter, the four host abilities', () => {
+    const rules = rulesOf('broodpiercer');
+    expect(findTemplate('broodpiercer')!.group).toBe('Parasite');
+    expect(mod(rules, 'all')).toBe(1);
+    expect(rules).toContainEqual({ key: 'ActiveEffectLike', mode: 'upgrade', path: 'system.abilities.int.mod', value: -3 });
+    expect(slugs('broodpiercer')).toEqual(['cold-stasis', 'fumbling-dodge', 'erratic-barrage', 'induce-frenzy']);
+    expect(built('broodpiercer').abilities[1]!.actionType).toBe('reaction');
+    expect(text('broodpiercer', 'induce-frenzy')).toContain('5 temporary Hit Points');
   });
 });
