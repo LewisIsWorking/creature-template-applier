@@ -233,7 +233,7 @@ describe('elemental templates', () => {
 
   it('every HP modifier has its own slug, so two templates stack', () => {
     const slugs = TEMPLATES.flatMap((t) => keyed(t.build(facts(), {}).rules, 'FlatModifier')).filter((r) => r['selector'] === 'hp').map((r) => r['slug']);
-    expect(slugs).toHaveLength(10);
+    expect(slugs).toHaveLength(12);
     expect(new Set(slugs).size).toBe(10);
     expect(keyed(rulesOf('wood'), 'FlatModifier')[0]).toMatchObject({ slug: 'wood-template-hp', label: 'Wood template' });
   });
