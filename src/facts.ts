@@ -13,7 +13,7 @@ export interface CreatureLike {
     readonly perception?: { readonly senses?: unknown };
   };
   readonly perception?: { readonly senses?: unknown };
-  readonly skills?: Record<string, { readonly mod?: unknown } | undefined>;
+  readonly skills?: Record<string, { readonly mod?: unknown; readonly proficient?: unknown } | undefined>;
   readonly saves?: Record<string, { readonly mod?: unknown } | undefined>;
 }
 
@@ -51,6 +51,9 @@ export function readFacts(creature: CreatureLike, slowedUuid: string | null): Cr
     })(),
     saves: { fortitude: save('fortitude'), reflex: save('reflex'), will: save('will') },
     skills: skillMods,
+    trained: Object.entries(creature.skills ?? {})
+      .filter(([, s]) => s?.proficient === true)
+      .map(([slug]) => slug),
     traits: strings(creature.system?.traits?.value),
     rarity: strings([creature.system?.traits?.rarity])[0] ?? 'common',
     senses: senseTypes(creature.perception?.senses ?? creature.system?.perception?.senses),

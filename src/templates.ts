@@ -10,6 +10,7 @@
 import { MYTHIC } from './mythic.ts';
 import { byLevel, dcForLevel, STEP_3_5_10_15 } from './levels.ts';
 import { CRYPTIDS } from './cryptids.ts';
+import { NPCS } from './npc.ts';
 import { WILD } from './wild.ts';
 
 /** A PF2e rule element, as stored on an item. */
@@ -52,6 +53,8 @@ export interface CreatureFacts {
   readonly saves: Readonly<Record<'fortitude' | 'reflex' | 'will', number>>;
   /** Skill modifiers by slug, for the mythic templates' extreme skills. */
   readonly skills: Readonly<Record<string, number>>;
+  /** Skills listed on its sheet (trained), Lores included, for Guerrilla's "if it has Athletics". */
+  readonly trained: readonly string[];
   /** Its traits, for the cryptids' animal to beast. */
   readonly traits: readonly string[];
   /** common, uncommon, rare or unique. */
@@ -72,13 +75,17 @@ export interface TemplateChoices {
   readonly bypass?: Bypass;
   /** Experimental cryptid only: its Energy Wave and Power Surge damage type. */
   readonly energy?: Energy;
+  /** Secret Society Member only: its primary social skill; the other one is secondary. */
+  readonly social?: Social;
   /** The optional abilities picked, for a template that offers picks; its defaults when left out. */
   readonly picks?: readonly string[];
 }
 
 export type Energy = 'electricity' | 'fire';
 
-export type Choice = 'mindless' | 'bypass' | 'aquatic' | 'plant' | 'energy';
+export type Social = 'diplomacy' | 'intimidation';
+
+export type Choice = 'mindless' | 'bypass' | 'aquatic' | 'plant' | 'energy' | 'social';
 
 /** An optional ability a template lets the GM pick. */
 export interface Pick {
@@ -814,6 +821,7 @@ export const TEMPLATES: readonly CreatureTemplate[] = [
   ...MYTHIC,
   ...WILD,
   ...CRYPTIDS,
+  ...NPCS,
 ];
 
 export function findTemplate(id: string): CreatureTemplate | undefined {

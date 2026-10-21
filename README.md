@@ -51,6 +51,15 @@ attack. Those are listed on the template's effect under **Still to do by hand**.
   damage roll by 1, adds Hit Points, and grants its abilities. The apply dialog lets you pick the
   optional abilities (Mutant, Primeval and Rumored) and the Experimental cryptid's energy.
 
+- **NPC**, five NPC adjustments: Corrupt, Guerrilla, Retired and Union Organizer from *Pathfinder
+  NPC Core* (pages 71 to 122), and Secret Society Member from *Pathfinder Dark Archive (Remastered)*
+  (page 80). Skills are raised to the creature-building values for the level. A Lore the creature
+  lacks is listed on the template's effect for you to add. Retired's Rusty is a toggle: untick it
+  when Still Got It! takes effect. Secret Society Member lets you pick its society abilities and
+  whether Diplomacy or Intimidation is its primary social skill.
+- **Parasite**: Broodpiercer from *Pathfinder Howl of the Wild* (page 129), for an animal, beast,
+  humanoid or dragon host.
+
 ## Install
 
 Manifest URL:

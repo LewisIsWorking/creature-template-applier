@@ -4,7 +4,7 @@
  */
 import { appliedTemplates, buildTemplate, MODULE_ID } from './build.ts';
 import { readFacts } from './facts.ts';
-import { findTemplate, TEMPLATES, type Bypass, type Energy, type TemplateChoices } from './templates.ts';
+import { findTemplate, TEMPLATES, type Bypass, type Energy, type Social, type TemplateChoices } from './templates.ts';
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- Foundry ships no types; this file is the boundary. */
 declare const game: any;
@@ -80,6 +80,9 @@ function dialogContent(actor: any): string {
     <div class="form-group"><label>Energy</label>
       <select name="energy"><option value="electricity">electricity</option><option value="fire">fire</option></select>
       <p class="hint">Experimental Cryptid only: the damage of its Energy Wave and Power Surge.</p></div>
+    <div class="form-group"><label>Primary social skill</label>
+      <select name="social"><option value="diplomacy">Diplomacy</option><option value="intimidation">Intimidation</option></select>
+      <p class="hint">Secret Society Member only: the other becomes a secondary skill.</p></div>
     ${picks}
     ${removals ? `<fieldset><legend>Applied</legend>${removals}</fieldset>` : ''}`;
 }
@@ -108,6 +111,7 @@ async function openDialog(actor: any): Promise<void> {
     ...(template.choices.includes('aquatic') ? { aquatic: data['aquatic'] === true } : {}),
     ...(template.choices.includes('plant') ? { plant: data['plant'] === true } : {}),
     ...(template.choices.includes('energy') ? { energy: String(data['energy']) as Energy } : {}),
+    ...(template.choices.includes('social') ? { social: String(data['social']) as Social } : {}),
     ...(template.picks ? { picks: template.picks.filter((p) => data[`pick.${id}.${p.id}`] === true).map((p) => p.id) } : {}),
   };
   try {

@@ -25,7 +25,7 @@ const hardDc = (level: number): number => dcForLevel(level) + 2;
 const check = (save: string, dc: number, basic = false): string => `@Check[${save}|dc:${dc}${basic ? '|basic' : ''}|immutable:true]`;
 
 /** Level +1; +1 to every check, DC and damage roll; Hit Points by starting level. */
-function adjustments(id: string, name: string, facts: CreatureFacts): Rule[] {
+export function adjustments(id: string, name: string, facts: CreatureFacts): Rule[] {
   const label = `${name} template`;
   return [
     { key: 'ActiveEffectLike', mode: 'add', path: 'system.details.level.value', value: 1 },
@@ -35,7 +35,7 @@ function adjustments(id: string, name: string, facts: CreatureFacts): Rule[] {
   ];
 }
 
-const LIMITED_USE = 'Add 1 more damage (2 in all) to its abilities it can use only a few times, such as a breath weapon.';
+export const LIMITED_USE = 'Add 1 more damage (2 in all) to its abilities it can use only a few times, such as a breath weapon.';
 
 const rarity = (value: string): Rule => ({ key: 'ActiveEffectLike', mode: 'override', path: 'system.traits.rarity', value });
 
@@ -45,7 +45,7 @@ const animalToBeast = (facts: CreatureFacts): Rule[] =>
   facts.traits.includes('animal') ? [{ key: 'ActorTraits', add: ['beast'], remove: ['animal'] }] : [];
 
 /** An Intelligence modifier of -4 or lower becomes -3. */
-const smarter: Rule = { key: 'ActiveEffectLike', mode: 'upgrade', path: 'system.abilities.int.mod', value: -3 };
+export const smarter: Rule = { key: 'ActiveEffectLike', mode: 'upgrade', path: 'system.abilities.int.mod', value: -3 };
 
 const ability = (
   slug: string,
@@ -63,7 +63,7 @@ const PASSIVE = { actionType: 'passive' } as const;
 const FREE = { actionType: 'free' } as const;
 
 /** The picks in effect: the GM's, or the template's defaults. */
-const picked = (picks: readonly Pick[], choices: TemplateChoices): Set<string> =>
+export const picked = (picks: readonly Pick[], choices: TemplateChoices): Set<string> =>
   new Set(choices.picks ?? picks.filter((p) => p.default).map((p) => p.id));
 
 /** Power Surge's extra dice by level. */

@@ -112,7 +112,7 @@ const snapshot = (page: Page, id: string): Promise<Snapshot> =>
       ac: attr.ac.value,
       perception: a.perception?.mod,
       rarity: a.rarity,
-      skills: Object.fromEntries(['acrobatics', 'athletics', 'stealth'].map((s) => [s, a.skills[s]?.mod])),
+      skills: Object.fromEntries(['acrobatics', 'athletics', 'deception', 'diplomacy', 'society', 'stealth'].map((s) => [s, a.skills[s]?.mod])),
       unknown: [
         ...[...a.system.traits.value].filter((t: string) => !(t in g.CONFIG.PF2E.creatureTraits)),
         ...[...(a.system.details.languages?.value ?? [])].filter((l: string) => !(l in g.CONFIG.PF2E.languages)),
@@ -295,6 +295,33 @@ const CASES: [string, Record<string, unknown>, Expect][] = [
     ['Stalk and Howl', has(s.items, 'Stalk', 'Vanishing Escape', 'Howl'), s.items.join()],
   ]],
   ['winged', {}, (s) => [['fly 25', s.speeds['fly'] === 25, JSON.stringify(s.speeds)], ['Dropping Dodge', s.items.includes('Dropping Dodge')]]],
+  ['corrupt', {}, (s) => [
+    ['Will -1', s.saves[2] === base.saves[2]! - 1, `${base.saves} -> ${s.saves}`],
+    ['Deception high (+12)', s.skills['deception'] === Math.max(12, base.skills['deception']!), JSON.stringify(s.skills)],
+    ['Official Bully', s.items.includes('Official Bully'), s.items.join()],
+  ]],
+  ['guerrilla', {}, (s) => [
+    ['Stealth high (+12)', s.skills['stealth'] === Math.max(12, base.skills['stealth']!), JSON.stringify(s.skills)],
+    ['Sneak Attack and Pounce', has(s.items, 'Sneak Attack', 'Pounce'), s.items.join()],
+  ]],
+  ['retired', {}, (s) => [
+    ['level 4 -> 3', s.level === 3, String(s.level)],
+    ['Rusty: AC and Perception -1', s.ac === base.ac - 1 && s.perception === base.perception - 1, JSON.stringify([s.ac, s.perception])],
+    ['Rusty and Still Got It!', has(s.items, 'Rusty', 'Still Got It!'), s.items.join()],
+  ]],
+  ['union-organizer', {}, (s) => [
+    ['Diplomacy not lowered', s.skills['diplomacy']! >= base.skills['diplomacy']!, JSON.stringify(s.skills)],
+    ['Solidarity', s.items.includes('Solidarity'), s.items.join()],
+  ]],
+  ['secret-society-member', {}, (s) => [
+    ['level 4 -> 5, HP 60 -> 75', s.level === 5 && s.hpMax === 75, `${s.level} ${s.hpMax}`],
+    ['Deception and Society high (+13)', s.skills['deception'] === Math.max(13, base.skills['deception']! + 1) && s.skills['society'] === Math.max(13, base.skills['society']! + 1), JSON.stringify(s.skills)],
+    ['Connected, Shibboleth, Tag Team', has(s.items, 'Connected', 'Shibboleth', 'Not Today!', 'Prepared Diversion', 'Tag Team'), s.items.join()],
+  ]],
+  ['broodpiercer', {}, (s) => [
+    ['level 4 -> 5, HP 60 -> 75', s.level === 5 && s.hpMax === 75, `${s.level} ${s.hpMax}`],
+    ['four host abilities', has(s.items, 'Cold Stasis', 'Fumbling Dodge', 'Erratic Barrage', 'Induce Frenzy'), s.items.join()],
+  ]],
   ['zombie', {}, (s) => [
     ['HP 60 -> 80', s.hpMax === 80, String(s.hpMax)],
     ['weak 5 to vitality and slashing', s.weaknesses['vitality'] === 5 && s.weaknesses['slashing'] === 5, JSON.stringify(s.weaknesses)],
