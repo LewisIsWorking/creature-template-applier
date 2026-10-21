@@ -1,5 +1,11 @@
 # creature-template-applier
 
+## 0.7.0
+
+### Minor Changes
+
+- [#19](https://github.com/LewisIsWorking/creature-template-applier/pull/19) [`10642cb`](https://github.com/LewisIsWorking/creature-template-applier/commit/10642cbebce1d2c540ce9ce711bfd36d73a9e4ef) Thanks [@LewisIsWorking](https://github.com/LewisIsWorking)! - Adds the NPC adjustments Corrupt, Guerrilla, Retired, Union Organizer and Secret Society Member, and the Broodpiercer parasite.
+
 ## 0.6.0
 
 ### Minor Changes
