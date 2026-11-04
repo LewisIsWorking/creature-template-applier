@@ -1,5 +1,11 @@
 # creature-template-applier
 
+## 0.7.1
+
+### Patch Changes
+
+- Verified for Foundry 14.370.
+
 ## 0.7.0
 
 ### Minor Changes
