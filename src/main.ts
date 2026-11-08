@@ -71,7 +71,7 @@ function dialogContent(actor: any): string {
     <div class="form-group"><label>Mindless</label><input type="checkbox" name="mindless">
       <p class="hint">Undead and Skeleton only.</p></div>
     <div class="form-group"><label>Aquatic</label><input type="checkbox" name="aquatic">
-      <p class="hint">Water only: aquatic instead of amphibious.</p></div>
+      <p class="hint">Water and Marine only: aquatic instead of amphibious.</p></div>
     <div class="form-group"><label>Plant</label><input type="checkbox" name="plant">
       <p class="hint">Wood only: a growing plant also gets the plant trait.</p></div>
     <div class="form-group"><label>Bypassed by</label>

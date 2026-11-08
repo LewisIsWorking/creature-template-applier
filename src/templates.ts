@@ -7,6 +7,7 @@
  * level every time it prepares data, so they stay right when the level changes (Elite, Weak).
  */
 
+import { ALIEN } from './alien.ts';
 import { MYTHIC } from './mythic.ts';
 import { byLevel, dcForLevel, STEP_3_5_10_15 } from './levels.ts';
 import { CRYPTIDS } from './cryptids.ts';
@@ -822,6 +823,7 @@ export const TEMPLATES: readonly CreatureTemplate[] = [
   ...WILD,
   ...CRYPTIDS,
   ...NPCS,
+  ...ALIEN,
 ];
 
 export function findTemplate(id: string): CreatureTemplate | undefined {

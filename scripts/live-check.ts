@@ -322,6 +322,43 @@ const CASES: [string, Record<string, unknown>, Expect][] = [
     ['level 4 -> 5, HP 60 -> 75', s.level === 5 && s.hpMax === 75, `${s.level} ${s.hpMax}`],
     ['four host abilities', has(s.items, 'Cold Stasis', 'Fumbling Dodge', 'Erratic Barrage', 'Induce Frenzy'), s.items.join()],
   ]],
+  ['aerial', {}, (s) => [['fly 25', s.speeds['fly'] === 25, JSON.stringify(s.speeds)]]],
+  ['environmental-adaptation', { picks: ['temperature-adaptation', 'climb'] }, (s) => [
+    ['climb 10', s.speeds['climb'] === 10, JSON.stringify(s.speeds)],
+    ['protections and Temperature Adaptation only', has(s.items, 'Environmental Protections', 'Temperature Adaptation') && !s.items.includes('Terrain Adaptation'), s.items.join()],
+  ]],
+  ['hardlight', {}, (s) => [
+    ['traits construct, tech', has(s.traits, 'construct', 'tech'), s.traits.join()],
+    ['machine immunities', has(s.immunities, 'bleed', 'healing', 'nonlethal-attacks', 'spirit', 'vitality', 'void'), s.immunities.join()],
+    ['weak 5 to electricity and force', s.weaknesses['electricity'] === 5 && s.weaknesses['force'] === 5, JSON.stringify(s.weaknesses)],
+    ['resist physical 5', s.resistances['physical']?.value === 5, JSON.stringify(s.resistances)],
+    ['darkvision and Tethered', s.senses.includes('darkvision') && s.items.includes('Tethered'), `${s.senses} ${s.items}`],
+  ]],
+  ['interstellar', {}, (s) => [
+    ['trait cosmic', has(s.traits, 'cosmic'), s.traits.join()],
+    ['immune to cold and radiation', has(s.immunities, 'cold', 'radiation'), s.immunities.join()],
+    ['fly 25', s.speeds['fly'] === 25, JSON.stringify(s.speeds)],
+  ]],
+  ['magical', {}, (s) => [['Magical Resilience', s.items.includes('Magical Resilience'), s.items.join()]]],
+  ['marine', {}, (s) => [
+    ['trait amphibious', has(s.traits, 'amphibious'), s.traits.join()],
+    ['swim 15', s.speeds['swim'] === 15, JSON.stringify(s.speeds)],
+    ['low-light vision and scent', has(s.senses, 'low-light-vision', 'scent'), s.senses.join()],
+  ]],
+  ['nanite', {}, (s) => [
+    ['nanite immunities', has(s.immunities, 'acid', 'critical-hits', 'mental', 'precision', 'visual'), s.immunities.join()],
+    ['three abilities', has(s.items, 'All-Around Vision', 'Compression', 'Nanite Surge'), s.items.join()],
+  ]],
+  ['robotic', {}, (s) => [
+    ['traits construct, robot, tech', has(s.traits, 'construct', 'robot', 'tech'), s.traits.join()],
+    ['weak 5 to electricity', s.weaknesses['electricity'] === 5, JSON.stringify(s.weaknesses)],
+    ['mental immunity', has(s.immunities, 'mental', 'death-effects'), s.immunities.join()],
+  ]],
+  ['sapient', {}, (s) => [['not mindless', !s.traits.includes('mindless'), s.traits.join()]]],
+  ['warped', {}, (s) => [
+    ['trait mutant', has(s.traits, 'mutant'), s.traits.join()],
+    ['Not Really There and Unsettling', has(s.items, 'Not Really There', 'Unsettling'), s.items.join()],
+  ]],
   ['zombie', {}, (s) => [
     ['HP 60 -> 80', s.hpMax === 80, String(s.hpMax)],
     ['weak 5 to vitality and slashing', s.weaknesses['vitality'] === 5 && s.weaknesses['slashing'] === 5, JSON.stringify(s.weaknesses)],

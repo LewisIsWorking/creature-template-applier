@@ -57,6 +57,11 @@ attack. Those are listed on the template's effect under **Still to do by hand**.
   lacks is listed on the template's effect for you to add. Retired's Rusty is a toggle: untick it
   when Still Got It! takes effect. Secret Society Member lets you pick its society abilities and
   whether Diplomacy or Intimidation is its primary social skill.
+- **Starfinder**, the ten creature adjustments from *Starfinder Alien Core* (pages 204 to 207):
+  Aerial, Environmental Adaptation, Hardlight, Interstellar, Magical, Marine, Nanite, Robotic, Sapient
+  and Warped. The dialog lets you pick Environmental Adaptation's adaptations, and whether a Marine
+  creature is aquatic. Magical and Sapient are mostly choices about the creature, so they list what
+  to add by hand.
 - **Parasite**: Broodpiercer from *Pathfinder Howl of the Wild* (page 129), for an animal, beast,
   humanoid or dragon host.
 
