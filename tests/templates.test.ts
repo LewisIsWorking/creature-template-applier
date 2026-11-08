@@ -506,7 +506,7 @@ describe('a language the system does not have', () => {
   const kobold = findTemplate('kobold')!;
   const languageRules = (rules: unknown) =>
     (rules as Rule[]).filter((r) => r['path'] === 'system.details.languages.value').map((r) => r['value']);
-  const rulesIn = (b: ReturnType<typeof buildTemplate>) => (b.items[0]!.system as { rules: unknown }).rules;
+  const rulesIn = (b: ReturnType<typeof buildTemplate>) => (b.items[0]!['system'] as { rules: unknown }).rules;
 
   it('is left out, and the GM is told', () => {
     const built = buildTemplate(kobold, facts(), {}, new Set(['common']));
