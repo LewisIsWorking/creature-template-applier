@@ -790,10 +790,12 @@ describe('Starfinder adjustments', () => {
     expect(resolve(keyed(hard, 'Resistance')[0]!['value'], 9)).toBe(10);
     expect(keyed(hard, 'Sense')).toEqual([{ key: 'Sense', selector: 'darkvision' }]);
     expect(slugs('hardlight')).toEqual(['tethered']);
+    expect(built('hardlight').byHand[0]).toContain('90 to 200 feet');
     const robot = rulesOf('robotic');
     expect(addedTraits(robot)).toEqual(['construct', 'robot', 'tech']);
     expect(immune(robot)).toEqual(expect.arrayContaining(['mental', 'death-effects', 'void']));
     expect(resolve(keyed(robot, 'Weakness')[0]!['value'], 14)).toBe(15);
+    expect(built('robotic').byHand[0]).toMatch(/Exigency.*Covering Posture.*Nanite Surge.*Fire Suppressor/);
     expect(built('robotic').byHand[1]).toContain('laser cannon');
   });
 
