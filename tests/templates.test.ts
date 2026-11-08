@@ -50,6 +50,7 @@ describe('templates', () => {
       'amphibious', 'frostbound', 'miniature', 'sandbound', 'twinned', 'winged',
       'experimental-cryptid', 'mutant-cryptid', 'primeval-cryptid', 'rumored-cryptid',
       'corrupt', 'guerrilla', 'retired', 'union-organizer', 'secret-society-member', 'broodpiercer',
+      'aerial', 'environmental-adaptation', 'hardlight', 'interstellar', 'magical', 'marine', 'nanite', 'robotic', 'sapient', 'warped',
     ]);
     expect(findTemplate('nope')).toBeUndefined();
   });
@@ -743,5 +744,119 @@ describe('NPC and parasite templates', () => {
     expect(slugs('broodpiercer')).toEqual(['cold-stasis', 'fumbling-dodge', 'erratic-barrage', 'induce-frenzy']);
     expect(built('broodpiercer').abilities[1]!.actionType).toBe('reaction');
     expect(text('broodpiercer', 'induce-frenzy')).toContain('5 temporary Hit Points');
+  });
+});
+
+describe('Starfinder adjustments', () => {
+  const built = (id: string, f: CreatureFacts = facts(), choices = {}) => findTemplate(id)!.build(f, choices);
+  const slugs = (id: string, f?: CreatureFacts, choices = {}) => built(id, f, choices).abilities.map((a) => a.slug);
+  const text = (id: string, slug: string, f?: CreatureFacts) => built(id, f).abilities.find((a) => a.slug === slug)!.description;
+  const speedOf = (rules: readonly Rule[], selector: string) => keyed(rules, 'BaseSpeed').find((r) => r['selector'] === selector)?.['value'];
+  const ids = ['aerial', 'environmental-adaptation', 'hardlight', 'interstellar', 'magical', 'marine', 'nanite', 'robotic', 'sapient', 'warped'];
+
+  it('all ten are in the Starfinder group, sourced to Alien Core, with no level or HP change', () => {
+    for (const id of ids) {
+      const t = findTemplate(id)!;
+      expect(t.group).toBe('Starfinder');
+      expect(t.source).toMatch(/^Starfinder Alien Core pg\. 20[4-7]$/);
+      expect(keyed(rulesOf(id), 'FlatModifier').filter((r) => r['selector'] === 'hp' || r['selector'] === 'all')).toEqual([]);
+    }
+  });
+
+  it('Aerial: fly at its highest Speed and top Acrobatics, unless it flies already', () => {
+    expect(speedOf(rulesOf('aerial', facts({ highestSpeed: 40 })), 'fly')).toBe(40);
+    expect(speedOf(rulesOf('aerial', facts({ canFly: true })), 'fly')).toBeUndefined();
+    expect(speedOf(rulesOf('aerial', facts({ highestSpeed: 0 })), 'fly')).toBeUndefined();
+    expect(keyed(rulesOf('aerial'), 'FlatModifier')).toEqual([expect.objectContaining({ selector: 'acrobatics', value: 7, slug: 'aerial-template-skill' })]);
+  });
+
+  it('Environmental Adaptation: protections always, the picked adaptations, burrow and climb at half its highest Speed', () => {
+    expect(slugs('environmental-adaptation')).toEqual(['environmental-protections', 'temperature-adaptation', 'terrain-adaptation']);
+    expect(keyed(rulesOf('environmental-adaptation'), 'BaseSpeed')).toEqual([]);
+    const both = { picks: ['burrow', 'climb'] };
+    expect(slugs('environmental-adaptation', facts(), both)).toEqual(['environmental-protections']);
+    const rules = rulesOf('environmental-adaptation', facts({ highestSpeed: 40 }), both);
+    expect([speedOf(rules, 'burrow'), speedOf(rules, 'climb')]).toEqual([20, 20]);
+    expect(speedOf(rulesOf('environmental-adaptation', facts({ speeds: { land: 25, climb: 10 } }), both), 'climb')).toBeUndefined();
+    expect(keyed(rulesOf('environmental-adaptation', facts({ highestSpeed: 5 }), both), 'BaseSpeed')).toEqual([]);
+  });
+
+  it('Hardlight and Robotic: construct bodies with the 3/5/10/15 table', () => {
+    const hard = rulesOf('hardlight');
+    expect(addedTraits(hard)).toEqual(['construct', 'tech']);
+    expect(immune(hard)).toContain('nonlethal-attacks');
+    expect(immune(hard)).not.toContain('mental');
+    expect(keyed(hard, 'Weakness').map((r) => r['type'])).toEqual(['electricity', 'force']);
+    expect(resolve(keyed(hard, 'Resistance')[0]!['value'], 9)).toBe(10);
+    expect(keyed(hard, 'Sense')).toEqual([{ key: 'Sense', selector: 'darkvision' }]);
+    expect(slugs('hardlight')).toEqual(['tethered']);
+    const robot = rulesOf('robotic');
+    expect(addedTraits(robot)).toEqual(['construct', 'robot', 'tech']);
+    expect(immune(robot)).toEqual(expect.arrayContaining(['mental', 'death-effects', 'void']));
+    expect(resolve(keyed(robot, 'Weakness')[0]!['value'], 14)).toBe(15);
+    expect(built('robotic').byHand[1]).toContain('laser cannon');
+  });
+
+  it('Interstellar: cosmic, Aerial, and immune to cold and radiation', () => {
+    const rules = rulesOf('interstellar');
+    expect(addedTraits(rules)).toEqual(['cosmic']);
+    expect(speedOf(rules, 'fly')).toBe(25);
+    expect(immune(rules)).toEqual(['cold', 'radiation']);
+  });
+
+  it('Magical: Magical Resilience, and the tradition by hand', () => {
+    expect(rulesOf('magical')).toEqual([]);
+    expect(built('magical').abilities[0]).toMatchObject({ slug: 'magical-resilience', actionType: 'reaction' });
+    expect(built('magical').byHand).toHaveLength(3);
+  });
+
+  it('Marine: amphibious or aquatic, swim or land Speeds, Athletics, low-light vision and scent', () => {
+    const amph = rulesOf('marine', facts({ speeds: { land: 40 }, highestSpeed: 40 }));
+    expect(keyed(amph, 'ActorTraits')).toEqual([{ key: 'ActorTraits', add: ['amphibious'], remove: ['aquatic'] }]);
+    expect(speedOf(amph, 'swim')).toBe(20);
+    expect(speedOf(rulesOf('marine', facts({ speeds: { land: 20 } })), 'swim')).toBe(15);
+    expect(keyed(amph, 'Sense')).toEqual([
+      { key: 'Sense', selector: 'low-light-vision' },
+      { key: 'Sense', selector: 'scent', acuity: 'imprecise', range: 120 },
+    ]);
+    expect(keyed(amph, 'FlatModifier')).toEqual([]);
+    expect(keyed(rulesOf('marine', facts({ highestSkill: 18 })), 'FlatModifier')[0]).toMatchObject({ selector: 'athletics', value: 3 });
+    const fish = rulesOf('marine', facts({ speeds: { swim: 50 }, highestSpeed: 50 }));
+    expect(keyed(fish, 'ActiveEffectLike')).toEqual([{ key: 'ActiveEffectLike', mode: 'upgrade', path: 'system.movement.speeds.land.base', value: 25 }]);
+    expect(speedOf(fish, 'swim')).toBeUndefined();
+    expect(keyed(rulesOf('marine', facts({ speeds: {}, highestSpeed: 0 })), 'BaseSpeed')).toEqual([]);
+    const aqua = rulesOf('marine', facts({ highestSpeed: 30 }), { aquatic: true });
+    expect(keyed(aqua, 'ActorTraits')).toEqual([{ key: 'ActorTraits', add: ['aquatic'], remove: ['amphibious'] }]);
+    expect(speedOf(aqua, 'swim')).toBe(30);
+    expect(keyed(rulesOf('marine', facts({ speeds: { swim: 50 } }), { aquatic: true }), 'ActiveEffectLike')).toEqual([]);
+    expect(built('marine', facts(), { aquatic: true }).byHand).toEqual([expect.stringContaining('Scent is optional')]);
+    expect(built('marine').byHand).toEqual([]);
+    expect(findTemplate('marine')!.choices).toEqual(['aquatic']);
+  });
+
+  it('Nanite: its immunities, darkvision, and a Nanite Surge of 6 HP per level', () => {
+    expect(immune(rulesOf('nanite'))).toEqual(['acid', 'bleed', 'critical-hits', 'mental', 'precision', 'unconscious', 'visual']);
+    expect(slugs('nanite')).toEqual(['all-around-vision', 'compression', 'nanite-surge']);
+    expect(text('nanite', 'nanite-surge')).toContain('restores 24 Hit Points');
+    expect(text('nanite', 'nanite-surge', facts({ level: -1 }))).toContain('restores 6 Hit Points');
+    expect(built('nanite').abilities[2]).toMatchObject({ actionType: 'action', actions: 2 });
+  });
+
+  it('Sapient: drops mindless, and says so when the creature was not mindless', () => {
+    const mindless = facts({ traits: ['construct', 'mindless'], highestSkill: 14 });
+    expect(rulesOf('sapient', mindless)).toEqual([{ key: 'ActorTraits', remove: ['mindless'] }]);
+    expect(built('sapient', mindless).byHand).toHaveLength(3);
+    expect(built('sapient', mindless).byHand[1]).toContain('+14');
+    expect(rulesOf('sapient')).toEqual([]);
+    expect(built('sapient').byHand[0]).toContain('not');
+  });
+
+  it('Warped: mutant, Not Really There and a hard-DC Unsettling aura', () => {
+    expect(addedTraits(rulesOf('warped'))).toEqual(['mutant']);
+    expect(built('warped').abilities.map((a) => [a.slug, a.traits])).toEqual([
+      ['not-really-there', ['teleportation']],
+      ['unsettling', ['aura', 'visual']],
+    ]);
+    expect(text('warped', 'unsettling')).toContain(`@Check[will|dc:${dcForLevel(4) + 2}]`);
   });
 });
