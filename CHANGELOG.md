@@ -1,5 +1,11 @@
 # creature-template-applier
 
+## 0.8.0
+
+### Minor Changes
+
+- [#21](https://github.com/LewisIsWorking/creature-template-applier/pull/21) [`4003ecf`](https://github.com/LewisIsWorking/creature-template-applier/commit/4003ecfce8b8911b7b1672414fb2d03bf3564ca4) Thanks [@LewisIsWorking](https://github.com/LewisIsWorking)! - The ten Starfinder Alien Core creature adjustments: Aerial, Environmental Adaptation, Hardlight, Interstellar, Magical, Marine, Nanite, Robotic, Sapient and Warped.
+
 ## 0.7.1
 
 ### Patch Changes
