@@ -502,6 +502,26 @@ describe('build', () => {
   });
 });
 
+describe('a language the system does not have', () => {
+  const kobold = findTemplate('kobold')!;
+  const languageRules = (rules: unknown) =>
+    (rules as Rule[]).filter((r) => r['path'] === 'system.details.languages.value').map((r) => r['value']);
+  const rulesIn = (b: ReturnType<typeof buildTemplate>) => (b.items[0]!.system as { rules: unknown }).rules;
+
+  it('is left out, and the GM is told', () => {
+    const built = buildTemplate(kobold, facts(), {}, new Set(['common']));
+    expect(languageRules(rulesIn(built))).toEqual([]);
+    expect(built.byHand.at(-1)).toContain('no Sakvroth language');
+  });
+
+  it('is kept when the system has it, or when the list is unknown', () => {
+    const has = buildTemplate(kobold, facts(), {}, new Set(['sakvroth']));
+    expect(languageRules(rulesIn(has))).toEqual(['sakvroth']);
+    expect(has.byHand.join()).not.toContain('language');
+    expect(languageRules(rulesIn(buildTemplate(kobold, facts(), {})))).toEqual(['sakvroth']);
+  });
+});
+
 describe('readFacts', () => {
   it('reads level, the highest Speed, flight and the highest skill', () => {
     const f = readFacts(

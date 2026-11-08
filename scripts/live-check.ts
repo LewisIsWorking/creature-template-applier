@@ -199,6 +199,10 @@ const has = (list: string[], ...want: string[]) => want.every((w) => list.includ
 const UNDEAD_IMMUNE = ['death-effects', 'disease', 'paralyzed', 'poison', 'unconscious'];
 
 type Expect = (s: Snapshot) => [string, boolean, string?][];
+/** Starfinder has none of these, so there the template must leave them out. */
+const NOT_IN_SF2E = ['amurrun', 'iruxi', 'kholo', 'sakvroth', 'tengu', 'tripkee'];
+const speaks = (s: Snapshot, slug: string) => s.languages.includes(slug) === !(system === 'sf2e' && NOT_IN_SF2E.includes(slug));
+
 const CASES: [string, Record<string, unknown>, Expect][] = [
   ['undead', { mindless: true }, (s) => [
     ['traits undead + mindless', has(s.traits, 'undead', 'mindless')],
@@ -249,25 +253,25 @@ const CASES: [string, Record<string, unknown>, Expect][] = [
     ['weak 5 to fire and axes', s.weaknesses['fire'] === 5 && s.weaknesses['axe-vulnerability'] === 5, JSON.stringify(s.weaknesses)],
   ]],
   ['athamaru', {}, (s) => [['traits athamaru + amphibious, no human', has(s.traits, 'athamaru', 'amphibious') && !has(s.traits, 'human'), s.traits.join()], ['swim 25', s.speeds['swim'] === 25, JSON.stringify(s.speeds)]]],
-  ['catfolk', {}, (s) => [['Amurrun', s.languages.includes('amurrun'), s.languages.join()], ['low-light vision', s.senses.includes('low-light-vision'), s.senses.join()]]],
+  ['catfolk', {}, (s) => [['Amurrun', speaks(s, 'amurrun'), s.languages.join()], ['low-light vision', s.senses.includes('low-light-vision'), s.senses.join()]]],
   ['dwarf', {}, (s) => [['darkvision', s.senses.includes('darkvision'), s.senses.join()], ['Speed 25 -> 20', s.speeds['land'] === 20, JSON.stringify(s.speeds)], ['Dwarven', s.languages.includes('dwarven')]]],
   ['elf', {}, (s) => [['Elven', s.languages.includes('elven')], ['Speed stays 25', s.speeds['land'] === 25]]],
   ['gnome', {}, (s) => [['Small', s.size === 'sm', s.size], ['Fey + Gnomish', has(s.languages, 'fey', 'gnomish'), s.languages.join()]]],
   ['goblin', {}, (s) => [['Small', s.size === 'sm', s.size], ['trait goblin', has(s.traits, 'goblin', 'humanoid'), s.traits.join()]]],
   ['halfling', {}, (s) => [['Small', s.size === 'sm', s.size], ['Keen Eyes', s.items.includes('Keen Eyes'), s.items.join()]]],
   ['hobgoblin', {}, (s) => [['Medium', s.size === 'med', s.size], ['Goblin', s.languages.includes('goblin')]]],
-  ['kholo', {}, (s) => [['Kholo', s.languages.includes('kholo'), s.languages.join()]]],
-  ['kobold', {}, (s) => [['Sakvroth', s.languages.includes('sakvroth'), s.languages.join()], ['Small', s.size === 'sm', s.size]]],
+  ['kholo', {}, (s) => [['Kholo', speaks(s, 'kholo'), s.languages.join()]]],
+  ['kobold', {}, (s) => [['Sakvroth', speaks(s, 'sakvroth'), s.languages.join()], ['Small', s.size === 'sm', s.size]]],
   ['leshy', {}, (s) => [
     ['leshy + plant, no human or humanoid', has(s.traits, 'leshy', 'plant') && !has(s.traits, 'human') && !has(s.traits, 'humanoid'), s.traits.join()],
     ['Verdant Burst', s.items.includes('Verdant Burst'), s.items.join()],
   ]],
-  ['lizardfolk', {}, (s) => [['Iruxi', s.languages.includes('iruxi'), s.languages.join()], ['swim 15', s.speeds['swim'] === 15, JSON.stringify(s.speeds)], ['Deep Breath', s.items.includes('Deep Breath')]]],
+  ['lizardfolk', {}, (s) => [['Iruxi', speaks(s, 'iruxi'), s.languages.join()], ['swim 15', s.speeds['swim'] === 15, JSON.stringify(s.speeds)], ['Deep Breath', s.items.includes('Deep Breath')]]],
   ['merfolk', {}, (s) => [['Speed 5, swim 25', s.speeds['land'] === 5 && s.speeds['swim'] === 25, JSON.stringify(s.speeds)], ['Thalassic', s.languages.includes('thalassic')]]],
   ['orc', {}, (s) => [['Orcish', s.languages.includes('orcish'), s.languages.join()]]],
   ['ratfolk', {}, (s) => [['Ysoki', s.languages.includes('ysoki'), s.languages.join()]]],
-  ['tengu', {}, (s) => [['Tengu', s.languages.includes('tengu'), s.languages.join()]]],
-  ['tripkee', {}, (s) => [['Tripkee', s.languages.includes('tripkee'), s.languages.join()], ['Small', s.size === 'sm', s.size]]],
+  ['tengu', {}, (s) => [['Tengu', speaks(s, 'tengu'), s.languages.join()]]],
+  ['tripkee', {}, (s) => [['Tripkee', speaks(s, 'tripkee'), s.languages.join()], ['Small', s.size === 'sm', s.size]]],
   ['mythic-ambusher', {}, (s) => [
     ['trait mythic', has(s.traits, 'mythic'), s.traits.join()],
     ['Stealth extreme (+15)', s.skills['stealth'] === 15, JSON.stringify(s.skills)],
