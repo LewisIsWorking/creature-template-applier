@@ -126,10 +126,14 @@ export const ALIEN: readonly CreatureTemplate[] = [
           PASSIVE,
           'defensive',
           [],
-          'It cannot move farther from its hardlight projector than the projector allows. Reduced to 0 Hit Points, it vanishes, and the projector rebuilds it in 1d4 hours. Only repairing or destroying the projector ends it for good.',
+          'It cannot travel more than the listed number of feet from its hardlight projector. Reduced to 0 Hit Points, it vanishes, and the projector rebuilds it in 1d4 hours. Only repairing or destroying the projector ends it for good.',
         ),
       ],
-      byHand: ['Ghost-killer weapons get through its physical resistance.', noRanged('hardlight beam Strike dealing force damage')],
+      byHand: [
+        "Add Tethered's distance to the ability's name. Published hardlight life-forms use 90 to 200 feet.",
+        'Ghost-killer weapons get through its physical resistance.',
+        noRanged('hardlight beam Strike dealing force damage'),
+      ],
     }),
   }),
   adjustment({
@@ -224,7 +228,10 @@ export const ALIEN: readonly CreatureTemplate[] = [
     build: () => ({
       rules: [{ key: 'ActorTraits', add: ['construct', 'robot', 'tech'] }, ...immunities([...MACHINE_IMMUNE, 'mental']), step('Weakness', 'electricity')],
       abilities: [],
-      byHand: ['Add security robot abilities if you like.', noRanged('laser cannon Strike dealing fire damage')],
+      byHand: [
+        "Optional security robot abilities, in SF2e's Alien Core Bestiary: Exigency (a reaction for +2 AC, once every 10 minutes), Covering Posture (adjacent allies get cover), Nanite Surge (heals a tech creature or item, once a day) and Fire Suppressor (a water blast).",
+        noRanged('laser cannon Strike dealing fire damage'),
+      ],
     }),
   }),
   adjustment({
