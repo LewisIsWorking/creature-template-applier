@@ -30,7 +30,7 @@ async function apply(actor: any, id: string, choices: TemplateChoices = {}): Pro
   const template = findTemplate(id);
   if (!template) throw new Error(`No template "${id}".`);
   if (appliedTemplates(actor.items).includes(id)) throw new Error(`${actor.name} already has the ${template.name} template.`);
-  const built = buildTemplate(template, readFacts(actor, slowedUuid()), choices);
+  const built = buildTemplate(template, readFacts(actor, slowedUuid()), choices, new Set(Object.keys((globalThis as any).CONFIG.PF2E.languages)));
   await actor.createEmbeddedDocuments('Item', built.items);
   return [...built.byHand];
 }
