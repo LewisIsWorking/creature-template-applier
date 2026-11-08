@@ -22,6 +22,35 @@ const check = (name: string, ok: boolean, detail = '') => {
 
 const ruleWarnings: string[] = [];
 
+/**
+ * Signs in and waits for the world. The join form can redraw while it is being filled, when someone
+ * else connects, and that empties the user picker: an empty pick is tried again. Any other refusal
+ * fails at once with Foundry's own message, rather than after the long wait.
+ */
+async function signIn(page: Page, name: string): Promise<void> {
+  const refused = 'must select a user|invalid password|does not exist';
+  const notices = () => page.evaluate(() => String((globalThis as any).document.querySelector('#notifications')?.textContent ?? ''));
+  const picker = page.locator('select[name=userId]');
+  for (let attempt = 1; ; attempt++) {
+    if (await picker.count()) await picker.selectOption({ label: name });
+    else await page.fill('input[name=username]', name);
+    if (PASSWORD) await page.fill('input[name=password]', PASSWORD);
+    await page.click('button[name=join]', { noWaitAfter: true });
+    await page.waitForFunction(
+      (re) => {
+        const g = globalThis as any;
+        return g.game?.ready === true || new RegExp(re, 'i').test(g.document.querySelector('#notifications')?.textContent ?? '');
+      },
+      refused,
+      SLOW,
+    );
+    if (await page.evaluate(() => (globalThis as any).game?.ready === true)) return;
+    const said = await notices();
+    if (!/must select a user/i.test(said) || attempt === 3) throw new Error(`Foundry refused the sign-in for ${name}: ${said.trim().slice(0, 200)}`);
+    await page.evaluate(() => (globalThis as any).document.querySelectorAll('#notifications li').forEach((n: any) => n.remove()));
+  }
+}
+
 async function join(): Promise<Page> {
   const browser = await chromium.launch();
   const ctx = await browser.newContext({ viewport: { width: 1600, height: 900 } });
@@ -43,12 +72,7 @@ async function join(): Promise<Page> {
   // A query string: the COO server sends a bare /join to its own portal; Foundry ignores the query.
   await page.goto(`${URL}/join?live-check`, { waitUntil: 'domcontentloaded', timeout: 600_000 });
   await page.waitForSelector('select[name=userId], input[name=username]', { timeout: 300_000 });
-  const picker = page.locator('select[name=userId]');
-  if (await picker.count()) await picker.selectOption({ label: GM });
-  else await page.fill('input[name=username]', GM);
-  if (PASSWORD) await page.fill('input[name=password]', PASSWORD);
-  await page.click('button[name=join]', { noWaitAfter: true });
-  await page.waitForFunction(() => (globalThis as any).game?.ready === true, null, SLOW);
+  await signIn(page, GM);
   // A fresh world has the module installed but off: switch it on and reload once.
   const enabled = await page.evaluate(async () => {
     const g = globalThis as any;
