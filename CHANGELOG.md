@@ -1,5 +1,11 @@
 # creature-template-applier
 
+## 0.8.1
+
+### Patch Changes
+
+- [#24](https://github.com/LewisIsWorking/creature-template-applier/pull/24) [`848bfdf`](https://github.com/LewisIsWorking/creature-template-applier/commit/848bfdf7882c103bfaf12404ebc5b7ef5e867ee9) Thanks [@LewisIsWorking](https://github.com/LewisIsWorking)! - Hardlight now says Tethered needs a distance and gives the published range. Robotic now names the optional security robot abilities and what each does.
+
 ## 0.8.0
 
 ### Minor Changes
