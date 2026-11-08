@@ -1,5 +1,11 @@
 # creature-template-applier
 
+## 0.8.2
+
+### Patch Changes
+
+- [#26](https://github.com/LewisIsWorking/creature-template-applier/pull/26) [`483830a`](https://github.com/LewisIsWorking/creature-template-applier/commit/483830a12836c34101407f2abc190f88d04dd153) Thanks [@LewisIsWorking](https://github.com/LewisIsWorking)! - Starfinder 2e has no Amurrun, Iruxi, Kholo, Sakvroth, Tengu or Tripkee language, so those ancestry templates no longer add them there. The effect tells the GM to give the creature a language that fits.
+
 ## 0.8.1
 
 ### Patch Changes
