@@ -426,6 +426,67 @@ const stacked = await snapshot(page, actorId);
 check('Elite + Skeleton stack', elite.hpMax > 60 && stacked.hpMax === elite.hpMax - 10 && stacked.resistances['fire']?.value === 3, `elite ${elite.hpMax}, both ${stacked.hpMax}`);
 await remove('skeleton');
 
+// The way a GM does it: the sheet's button, the dialog's own controls and its Apply button.
+const DIALOG = 'dialog.application:has(select[name=template])';
+const openFromSheet = async () => {
+  await page.evaluate(async (id) => {
+    const sheet = (globalThis as any).game.actors.get(id).sheet;
+    await sheet.render(true);
+    for (let i = 0; i < 50 && !sheet.element?.[0]; i++) await new Promise((r) => setTimeout(r, 100));
+    // Foundry only listens to header buttons 500 ms after a window first renders.
+    await new Promise((r) => setTimeout(r, 1000));
+    sheet.element[0].querySelector('.creature-templates').click();
+  }, actorId);
+  await page.waitForSelector(DIALOG);
+};
+const pressApply = async () => {
+  await page.click(`${DIALOG} button[data-action="ok"]`, { noWaitAfter: true });
+  await page.waitForSelector(DIALOG, { state: 'detached' });
+};
+const applied = (id: string) =>
+  page.waitForFunction(
+    ([actor, t]) => {
+      const g = globalThis as any;
+      return g.game.modules.get('creature-template-applier').api.applied(g.game.actors.get(actor)).includes(t);
+    },
+    [actorId, id] as const,
+    { timeout: 60_000, polling: 500 },
+  );
+const options = () => page.locator(`${DIALOG} select[name=template] option`).evaluateAll((all) => all.map((o: any) => o.value));
+
+await openFromSheet();
+await page.selectOption(`${DIALOG} select[name=template]`, 'undead');
+await page.check(`${DIALOG} input[name=mindless]`);
+await pressApply();
+await applied('undead');
+const viaDialog = await snapshot(page, actorId);
+check('the dialog applies the template with its Mindless choice', has(viaDialog.traits, 'undead', 'mindless') && viaDialog.items.includes('Template: Undead (mindless)'), viaDialog.items.join());
+
+await openFromSheet();
+check('the dialog no longer offers an applied template', !(await options()).includes('undead'));
+await page.check(`${DIALOG} input[name="remove.undead"]`);
+await pressApply();
+await page.waitForFunction(
+  (actor) => {
+    const g = globalThis as any;
+    return g.game.modules.get('creature-template-applier').api.applied(g.game.actors.get(actor)).length === 0;
+  },
+  actorId,
+  { timeout: 60_000, polling: 500 },
+);
+const removedViaDialog = await snapshot(page, actorId);
+check('the dialog removes a template it is asked to', !removedViaDialog.traits.includes('undead'), removedViaDialog.traits.join());
+
+await openFromSheet();
+await page.selectOption(`${DIALOG} select[name=template]`, 'mutant-cryptid');
+await page.uncheck(`${DIALOG} input[name="pick.mutant-cryptid.explosive-end"]`);
+await pressApply();
+await applied('mutant-cryptid');
+const picked = await snapshot(page, actorId);
+check('an unticked pick is left out and the ticked ones are added', !picked.items.includes('Explosive End') && picked.items.includes('Marrowlance'), picked.items.join());
+await remove('mutant-cryptid');
+await page.evaluate(async (id) => (globalThis as any).game.actors.get(id).sheet.close(), actorId);
+
 await page.evaluate(async (id) => (globalThis as any).game.actors.get(id).delete(), actorId);
 const passed = results.filter(([, ok]) => ok).length;
 console.log(`\n${passed}/${results.length} passed`);
