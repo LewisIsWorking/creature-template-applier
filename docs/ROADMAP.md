@@ -54,3 +54,6 @@ Owner: Foundry Modules (Invisi-Rolls and Templates)
 - [ ] Prove the em-dash guard still catches escapes, so a narrowed escape or
   skip list cannot pass CI (local branch opencode/modules/emdash-guard-tests
   ready; tick when its PR merges).
+- [ ] Guard the verified-foundry bump's build selection, so a regex or sort
+  change cannot ship a stale or wrong-major badge (local branch
+  opencode/modules/verified-bump-tests ready; tick when its PR merges).
