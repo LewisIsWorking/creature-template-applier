@@ -14,6 +14,12 @@ full run: 2026-11-18, all green on Foundry 14.370, PF2e 8.7.1, SF2e 1.7.1,
 module v0.8.2. The daily `verify-foundry.yml` workflow keeps the compatibility
 badge current.
 
+Detection is automated next door: the invisi-rolls repo's daily upstream-watch
+workflow compares foundryvtt.com and the systems' release tags with the versions
+its last live check ran against and opens one issue naming what moved. Those are
+the same Foundry, PF2e and SF2e versions this module runs on, so treat that issue
+as covering both modules.
+
 ## Known limits (not tracked: judgement calls belong to the GM)
 
 - Parts of a template that need a judgement about the creature are listed on the
