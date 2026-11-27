@@ -1,5 +1,13 @@
 # creature-template-applier
 
+## 0.8.3
+
+### Patch Changes
+
+- [#29](https://github.com/LewisIsWorking/creature-template-applier/pull/29) [`8562d44`](https://github.com/LewisIsWorking/creature-template-applier/commit/8562d447c3c2c6403cae2e7105c8a320e0d4d7bf) Thanks [@LewisIsWorking](https://github.com/LewisIsWorking)! - Docs: add a roadmap with a Tracker of the remaining work.
+
+- Verified for Foundry 14.371.
+
 ## 0.8.2
 
 ### Patch Changes
