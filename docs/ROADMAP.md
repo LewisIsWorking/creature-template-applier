@@ -33,7 +33,7 @@ Owner: Foundry Modules (Invisi-Rolls and Templates)
   not exist yet (the URL 404s) and no FOUNDRY_RELEASE_TOKEN secret is set;
   create it with docs/PACKAGE-LISTING.md. Until then the release workflow warns
   and skips the publish step).
-- [ ] Tokenless dry-run for the foundryvtt publish step (local branch
+- [x] Tokenless dry-run for the foundryvtt publish step (local branch
   opencode/modules/foundry-dryrun ready: DRY_RUN=true validates the release
   body with no token; tick when its PR merges).
 - [x] Daily releases-page fetch times out instead of hanging the workflow
