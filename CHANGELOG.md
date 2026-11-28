@@ -1,5 +1,11 @@
 # creature-template-applier
 
+## 0.8.4
+
+### Patch Changes
+
+- [#33](https://github.com/LewisIsWorking/creature-template-applier/pull/33) [`9672a8b`](https://github.com/LewisIsWorking/creature-template-applier/commit/9672a8ba04fb04bdda9d367d5e9bf5d204d3c71e) Thanks [@LewisIsWorking](https://github.com/LewisIsWorking)! - The foundryvtt.com publish step warns and skips when FOUNDRY_RELEASE_TOKEN is missing, instead of failing the release that already shipped.
+
 ## 0.8.3
 
 ### Patch Changes
