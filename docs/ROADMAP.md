@@ -50,7 +50,7 @@ Owner: Foundry Modules (Invisi-Rolls and Templates)
 - [ ] README install snippet and module.json release URLs agree, so a stale
   pinned release cannot ship in a copy-paste install (local branch
   opencode/modules/readme-install-guard ready; tick when its PR merges).
-- [ ] Workflow jobs time out instead of hanging for hours (local branch
+- [x] Workflow jobs time out instead of hanging for hours (local branch
   opencode/modules/workflow-timeouts ready; tick when its PR merges).
 - [ ] Guard module.json against a wrong repository, a manifest or download
   URL off releases/latest, or a missing system entry (local branch
